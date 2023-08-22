@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'dart:core';
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'player.dart';
@@ -106,19 +105,44 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       box.closer = Who.nobody;
     }
 
-    closeSomeBoxes();
+    // TODO: For testing, close all the boxes:
+    Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
 
     debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
     debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
     debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
   }
 
-  void closeSomeBoxes() {
-    for (final line in lines) {
-      line.drawer = Who.values.toList()[Random().nextInt(2) + 1];
-    }
-    for (final box in boxes) {
-      box.closer = Who.values.toList()[Random().nextInt(2) + 1];
+  Future<void> closeSomeBoxes({int percentage = 100}) async {
+    // TODO: For testing, close all the boxes:
+    var player = Who.p1;
+    // var linesDrawn = 0;
+
+    var shuffled = lines.where((line) => line.drawer == Who.nobody).toList()..shuffle();
+    print('percentage is $percentage');
+    print('taking ${(shuffled.length * percentage / 100).ceil()} out of ${shuffled.length} lines');
+    for (final line in shuffled.take((shuffled.length * percentage / 100).ceil())) {
+      line.drawer = player;
+      print('Drew $line as $player');
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {});
+
+      for (final box in boxes.where((box) => box.lines.containsKey(line))) {
+        // print('Inspecting Box($box)');
+
+        if (box.isClosed()) {
+          box.closer = player;
+          await Future.delayed(const Duration(milliseconds: 500));
+          setState(() {});
+        }
+      }
+
+      // Switch players:
+      if (player == Who.p1) {
+        player = Who.p2;
+      } else {
+        player = Who.p1;
+      }
     }
   }
 

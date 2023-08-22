@@ -1,13 +1,15 @@
 // ignore_for_file: avoid_print
 
 import 'dart:core';
+import 'dart:math';
 import 'package:flutter/material.dart';
 
+import 'player.dart';
 import 'box.dart';
 import 'dot.dart';
+import 'line.dart';
 import 'draw_boxes.dart';
 import 'draw_dots.dart';
-import 'line.dart';
 
 enum Direction { n, e, s, w }
 
@@ -20,6 +22,12 @@ const halfDotSizeFactor = 1 / 12;
 
 const dotsHorizontal = 3;
 const dotsVertical = 3;
+
+final Map<Who, Player> players = {
+  Who.nobody: Player(Colors.transparent),
+  Who.p1: Player(Colors.orange),
+  Who.p2: Player(Colors.blue)
+};
 
 class DotsAndBoxesGame extends StatefulWidget {
   const DotsAndBoxesGame({super.key});
@@ -98,9 +106,20 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       box.closer = Who.nobody;
     }
 
+    closeSomeBoxes();
+
     debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
     debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
     debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
+  }
+
+  void closeSomeBoxes() {
+    for (final line in lines) {
+      line.drawer = Who.values.toList()[Random().nextInt(2) + 1];
+    }
+    for (final box in boxes) {
+      box.closer = Who.values.toList()[Random().nextInt(2) + 1];
+    }
   }
 
   @override

@@ -72,11 +72,11 @@ class BoxPainter extends CustomPainter {
       Paint borderPaint = Paint()
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
-        ..color = Colors.blue;
+        ..color = players[line.key.drawer]!.color;
       canvas.drawPath(linePath, borderPaint);
     }
 
-    if (!box.isClosed()) {
+    if (box.isClosed()) {
       final Path boxPath = Path()
         ..moveTo(0 + 5, 0 + 5)
         ..lineTo(size.width - 5, 0 + 5)
@@ -86,13 +86,13 @@ class BoxPainter extends CustomPainter {
 
       Paint fillPaint = Paint()
         ..style = PaintingStyle.fill
-        ..color = Colors.orange;
+        ..color = players[box.closer]!.color;
       canvas.drawPath(boxPath, fillPaint);
     }
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) {
+  bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return false;
   }
 }

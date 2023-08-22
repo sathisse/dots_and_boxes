@@ -1,6 +1,7 @@
 // ignore_for_file: avoid_print
 
 import 'dart:core';
+import 'package:dots_and_boxes/utils.dart';
 import 'package:flutter/material.dart';
 
 import 'player.dart';
@@ -19,8 +20,9 @@ typedef Coord = (int x, int y);
 const dotSizeFactor = 1 / 6;
 const halfDotSizeFactor = 1 / 12;
 
-const dotsHorizontal = 3;
-const dotsVertical = 3;
+int numberOfDots = 20;
+late final int dotsHorizontal;
+late final int dotsVertical;
 
 final Map<Who, Player> players = {
   Who.nobody: Player(Colors.transparent),
@@ -44,6 +46,15 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   void initState() {
     super.initState();
 
+    var dimChoices = getDimensionChoices(numberOfDots);
+    print('Dimension choices are: $dimChoices');
+
+    var dims = dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first;
+    numberOfDots = dims.key;
+    dotsHorizontal = dims.value.$1;
+    dotsVertical = dims.value.$2;
+    print('Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
+
     dots = {};
     for (int x = 0; x < dotsHorizontal; x++) {
       for (int y = 0; y < dotsVertical; y++) {
@@ -57,7 +68,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     for (int x = 0; x < dotsHorizontal - 1; x++) {
       for (int y = 0; y < dotsVertical - 1; y++) {
         Box box = Box((x, y));
-
         var nw = dots.where((dot) => dot.position == (x, y)).single;
         var ne = dots.where((dot) => dot.position == (x + 1, y)).single;
         var se = dots.where((dot) => dot.position == (x + 1, y + 1)).single;

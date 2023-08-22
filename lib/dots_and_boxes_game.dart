@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'box.dart';
 import 'dot.dart';
+import 'draw_dots.dart';
 import 'line.dart';
 
 enum Direction { n, e, s, w }
@@ -104,10 +105,11 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      return const Stack(children: [
+      final width = constraints.maxWidth;
+      final height = constraints.maxHeight;
+      return Stack(children: [
         //DrawBoxes(boxes),
-        //DrawDots(dots),
-        Text("Hello, this is the Dots and Boxes game!")
+        DrawDots(width, height, dots),
       ]);
     });
   }

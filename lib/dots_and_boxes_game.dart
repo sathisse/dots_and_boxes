@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 
 import 'box.dart';
 import 'dot.dart';
+import 'draw_boxes.dart';
 import 'draw_dots.dart';
 import 'line.dart';
 
@@ -108,7 +109,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       final width = constraints.maxWidth;
       final height = constraints.maxHeight;
       return Stack(children: [
-        //DrawBoxes(boxes),
+        DrawBoxes(width, height, boxes),
         DrawDots(width, height, dots),
       ]);
     });

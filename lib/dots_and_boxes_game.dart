@@ -16,8 +16,8 @@ typedef Coord = (int x, int y);
 const dotSizeFactor = 1 / 6;
 const halfDotSizeFactor = 1 / 12;
 
-const dotsHorizontal = 5;
-const dotsVertical = 4;
+const dotsHorizontal = 3;
+const dotsVertical = 3;
 
 class DotsAndBoxesGame extends StatefulWidget {
   const DotsAndBoxesGame({super.key});
@@ -28,6 +28,7 @@ class DotsAndBoxesGame extends StatefulWidget {
 
 class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late final Set<Dot> dots; // These are always displayed.
+  late final Set<Line> lines; // These are only displayed if drawn.
   late final Set<Box> boxes; // These are only displayed if closed.
 
   @override
@@ -42,6 +43,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     }
 
     boxes = {};
+    lines = {};
     final List<Dot> boxDots = [];
     for (int x = 0; x < dotsHorizontal - 1; x++) {
       for (int y = 0; y < dotsVertical - 1; y++) {
@@ -62,16 +64,22 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         }
 
         // Create lines that surround the box:
+        var n = Line(nw.position, ne.position);
+        var e = Line(ne.position, se.position);
+        var s = Line(sw.position, se.position);
+        var w = Line(nw.position, sw.position);
 
         // Add them to global set of lines (ignoring rejection if any already exist):
-        box.lines.add(Line(dots.where((dot) => dot.position == (x, y)).single.position,
-            dots.where((dot) => dot.position == (x + 1, y)).single.position));
-        box.lines.add(Line(dots.where((dot) => dot.position == (x + 1, y)).single.position,
-            dots.where((dot) => dot.position == (x + 1, y + 1)).single.position));
-        box.lines.add(Line(dots.where((dot) => dot.position == (x, y + 1)).single.position,
-            dots.where((dot) => dot.position == (x + 1, y + 1)).single.position));
-        box.lines.add(Line(dots.where((dot) => dot.position == (x, y)).single.position,
-            dots.where((dot) => dot.position == (x, y + 1)).single.position));
+        lines.add(n);
+        lines.add(e);
+        lines.add(s);
+        lines.add(w);
+
+        // Add the ones that ended up in the global set to the box:
+        box.lines[lines.where((line) => line == n).single] = Direction.n;
+        box.lines[lines.where((line) => line == e).single] = Direction.e;
+        box.lines[lines.where((line) => line == s).single] = Direction.s;
+        box.lines[lines.where((line) => line == w).single] = Direction.w;
 
         boxes.add(box);
       }
@@ -81,15 +89,15 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   void resetGame() {
+    for (final line in lines) {
+      line.drawer = Who.nobody;
+    }
     for (final box in boxes) {
       box.closer = Who.nobody;
-
-      for (final line in box.lines) {
-        line.drawer = Who.nobody;
-      }
     }
 
     debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
+    debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
     debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
   }
 

@@ -3,17 +3,17 @@ import 'line.dart';
 
 class Box {
   final Coord position;
-  final List<Line> lines = []; // How many lines are still nobody? If 0, box is closed.
+  final Map<Line, Direction> lines = {}; // How many lines are still nobody? If 0, box is closed.
   Who closer = Who.nobody;
 
   Box(this.position);
 
   @override
   String toString() {
-    return 'Box($position,  ${closer.name},\n  {${lines.join(',  ')}},)';
+    return 'Box($position,  ${closer.name},\n  {${lines.entries.join(',  ')}},)';
   }
 
   bool isClosed() {
-    return lines.where((key) => key.drawer == Who.nobody).isEmpty;
+    return lines.keys.where((key) => key.drawer == Who.nobody).isEmpty;
   }
 }

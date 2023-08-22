@@ -42,16 +42,22 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     }
 
     boxes = {};
+    final List<Dot> boxDots = [];
     for (int x = 0; x < dotsHorizontal - 1; x++) {
       for (int y = 0; y < dotsVertical - 1; y++) {
         Box box = Box((x, y));
 
-        box.dots.add(dots.where((dot) => dot.position == (x, y)).single);
-        box.dots.add(dots.where((dot) => dot.position == (x + 1, y)).single);
-        box.dots.add(dots.where((dot) => dot.position == (x + 1, y + 1)).single);
-        box.dots.add(dots.where((dot) => dot.position == (x, y + 1)).single);
+        var nw = dots.where((dot) => dot.position == (x, y)).single;
+        var ne = dots.where((dot) => dot.position == (x + 1, y)).single;
+        var se = dots.where((dot) => dot.position == (x + 1, y + 1)).single;
+        var sw = dots.where((dot) => dot.position == (x, y + 1)).single;
 
-        for (final dot in box.dots) {
+        boxDots.add(nw);
+        boxDots.add(ne);
+        boxDots.add(se);
+        boxDots.add(sw);
+
+        for (final dot in boxDots) {
           dot.boxes.add(box);
         }
 

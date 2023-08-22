@@ -11,4 +11,14 @@ class Line {
   String toString() {
     return 'Line($start to $end, ${drawer.name})';
   }
+
+  // Only include the coordinates to determine equality:
+  @override
+  bool operator ==(Object other) {
+    return other is Line && start == other.start && end == other.end;
+  }
+
+  // Only include the coordinates to determine equality:
+  @override
+  int get hashCode => Object.hash(start, end);
 }

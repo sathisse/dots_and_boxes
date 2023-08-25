@@ -1,7 +1,8 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_svg/svg.dart';
+
 import 'dot.dart';
 import 'dots_and_boxes_game.dart';
 
@@ -27,10 +28,10 @@ class DrawDots extends StatelessWidget {
         Positioned(
             left: boxWidth * (dot.position.$1 + 0.4),
             top: boxHeight * (dot.position.$2 + 0.4),
-            height: dotSize,
             width: dotSize,
+            height: dotSize,
             child: SvgPicture.asset('assets/dot.svg',
-                colorFilter: const ColorFilter.mode(Colors.black, BlendMode.dst))),
+                colorFilter: const ColorFilter.mode(Colors.black, BlendMode.dst)))
     ]);
   }
 }

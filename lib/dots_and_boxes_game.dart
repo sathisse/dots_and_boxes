@@ -1,15 +1,15 @@
 // ignore_for_file: avoid_print
 
 import 'dart:core';
-import 'package:dots_and_boxes/utils.dart';
 import 'package:flutter/material.dart';
 
-import 'player.dart';
-import 'box.dart';
 import 'dot.dart';
 import 'line.dart';
-import 'draw_boxes.dart';
+import 'box.dart';
+import 'player.dart';
+import 'utils.dart';
 import 'draw_dots.dart';
+import 'draw_boxes.dart';
 
 enum Direction { n, e, s, w }
 
@@ -67,7 +67,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     final List<Dot> boxDots = [];
     for (int x = 0; x < dotsHorizontal - 1; x++) {
       for (int y = 0; y < dotsVertical - 1; y++) {
+        boxDots.clear();
         Box box = Box((x, y));
+
         var nw = dots.where((dot) => dot.position == (x, y)).single;
         var ne = dots.where((dot) => dot.position == (x + 1, y)).single;
         var se = dots.where((dot) => dot.position == (x + 1, y + 1)).single;
@@ -124,22 +126,15 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   Future<void> closeSomeBoxes({int percentage = 100}) async {
-    // TODO: For testing, close all the boxes:
     var player = Who.p1;
-    // var linesDrawn = 0;
-
-    var shuffled = lines.where((line) => line.drawer == Who.nobody).toList()..shuffle();
-    print('percentage is $percentage');
-    print('taking ${(shuffled.length * percentage / 100).ceil()} out of ${shuffled.length} lines');
+    var shuffled = lines.toList()..shuffle();
     for (final line in shuffled.take((shuffled.length * percentage / 100).ceil())) {
       line.drawer = player;
-      print('Drew $line as $player');
       await Future.delayed(const Duration(milliseconds: 500));
       setState(() {});
 
+      // TODO: Optimize this (make the mapping two-way?)
       for (final box in boxes.where((box) => box.lines.containsKey(line))) {
-        // print('Inspecting Box($box)');
-
         if (box.isClosed()) {
           box.closer = player;
           await Future.delayed(const Duration(milliseconds: 500));

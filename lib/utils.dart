@@ -42,6 +42,7 @@ Map<int, (int, int)> getDimensionChoices(number) {
     dims[number] = getFactors(number);
   }
 
+  // TODO: Optimize this by returning early:
   return Map<int, (int, int)>.fromEntries(
       dims.entries.where((dim) => dim.value.$2 > 2 && dim.value.$1 / dim.value.$2 < 4));
 }

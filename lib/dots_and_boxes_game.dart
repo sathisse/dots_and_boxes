@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:core';
 import 'package:flutter/material.dart';
 
@@ -18,9 +16,9 @@ enum Who { nobody, p1, p2 }
 typedef Coord = (int x, int y);
 
 const dotSizeFactor = 1 / 6;
-const halfDotSizeFactor = 1 / 12;
+const halfDotSizeFactor = dotSizeFactor / 2;
 
-int numberOfDots = 20;
+int numberOfDots = 9;
 late final int dotsHorizontal;
 late final int dotsVertical;
 
@@ -47,13 +45,13 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     super.initState();
 
     var dimChoices = getDimensionChoices(numberOfDots);
-    print('Dimension choices are: $dimChoices');
+    debugPrint('Dimension choices are: $dimChoices');
 
     var dims = dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first;
     numberOfDots = dims.key;
     dotsHorizontal = dims.value.$1;
     dotsVertical = dims.value.$2;
-    print('Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
+    debugPrint('Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
 
     dots = {};
     for (int x = 0; x < dotsHorizontal; x++) {
@@ -117,14 +115,15 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       box.closer = Who.nobody;
     }
 
-    // TODO: For testing, close all the boxes:
-    Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
+    // TODO: For testing, close some (or all) of the boxes:
+    // Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
 
     debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
     debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
     debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
   }
 
+  // For testing, not actual game-play:
   Future<void> closeSomeBoxes({int percentage = 100}) async {
     var player = Who.p1;
     var shuffled = lines.toList()..shuffle();
@@ -158,8 +157,25 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       final height = constraints.maxHeight;
       return Stack(children: [
         DrawBoxes(width, height, boxes),
-        DrawDots(width, height, dots),
+        DrawDots(width, height, dots, onLineRequested: onLineRequested),
       ]);
     });
+  }
+
+  onLineRequested(Dot src, Dot dest) {
+    switch (lines.where((x) => x == Line(src.position, dest.position)).toList()) {
+      case []:
+        debugPrint("Line is not valid");
+
+      case [Line line]:
+        line.drawer = Who.p1;
+
+        for (final box in boxes.where((box) => box.lines.containsKey(line))) {
+          if (box.isClosed()) {
+            box.closer = Who.p1;
+          }
+        }
+        setState(() {});
+    }
   }
 }

@@ -12,13 +12,15 @@ class Line {
     return 'Line($start to $end, ${drawer.name})';
   }
 
-  // Only include the coordinates to determine equality:
+  // Only include the coordinates (in either order) to determine equality:
   @override
   bool operator ==(Object other) {
-    return other is Line && start == other.start && end == other.end;
+    // TODO: Make the coords be a set and compare the sets?
+    return other is Line &&
+        ((start == other.start && end == other.end) || (start == other.end && end == other.start));
   }
 
-  // Only include the coordinates to determine equality:
+  // Only include the coordinates (in either order) to determine equality:
   @override
-  int get hashCode => Object.hash(start, end);
+  int get hashCode => start.hashCode ^ end.hashCode;
 }

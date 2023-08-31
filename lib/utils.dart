@@ -35,20 +35,19 @@ void showSnackBarGlobal(BuildContext context, String message) {
   return (middleFactor, number ~/ middleFactor);
 }
 
-const smallestNumberOfDots = 4;
-const largestAllowedNumberOfDots = 84;
+const smallestAllowedNumberOfDots = 6;
+const largestAllowedNumberOfDots = 100;
 const smallestMinorDimension = 2;
-const smallestMajorDimension = 4;
+const largestAllowedRatio = 3;
 
-Map<int, (int, int)> getDimensionChoices(number) {
+Map<int, (int, int)> getDimensionChoices() {
   Map<int, (int, int)> dims = {};
 
-  for (int number = smallestNumberOfDots; number <= largestAllowedNumberOfDots; number++) {
+  for (int number = smallestAllowedNumberOfDots; number <= largestAllowedNumberOfDots; number++) {
     dims[number] = getFactors(number);
   }
 
-  // TODO: Optimize this by returning early:
   return Map<int, (int, int)>.fromEntries(dims.entries.where((dim) =>
-      dim.value.$2 > smallestMinorDimension &&
-      dim.value.$1 / dim.value.$2 < smallestMajorDimension));
+      dim.value.$2 >= smallestMinorDimension &&
+      dim.value.$1 / dim.value.$2 <= largestAllowedRatio));
 }

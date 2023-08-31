@@ -16,9 +16,9 @@ enum Who { nobody, p1, p2 }
 
 typedef Coord = (int x, int y);
 
-int numberOfDots = 9;
-late final int dotsHorizontal;
-late final int dotsVertical;
+int numberOfDots = 12;
+late int dotsHorizontal;
+late int dotsVertical;
 
 final Map<Who, Player> players = {
   Who.nobody: Player("", Colors.transparent),
@@ -34,25 +34,31 @@ class DotsAndBoxesGame extends StatefulWidget {
 }
 
 class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
-  late final Set<Dot> dots; // These are always displayed.
-  late final Set<Line> lines; // These are only displayed if drawn.
-  late final Set<Box> boxes; // These are only displayed if closed.
-  Who currentPlayer = Who.p1;
-  String winnerText = "";
+  final dimChoices = getDimensionChoices();
+
+  late Set<Dot> dots; // These are always displayed.
+  late Set<Line> lines; // These are only displayed if drawn.
+  late Set<Box> boxes; // These are only displayed if closed.
+
+  late double sliderValue;
+  late Who currentPlayer;
+  late String winnerText;
 
   @override
   void initState() {
     super.initState();
 
-    var dimChoices = getDimensionChoices(numberOfDots);
     debugPrint('Dimension choices are: $dimChoices');
+    sliderValue = 4;
+    configureBoard(
+        dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+  }
 
-    var dims = dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first;
+  configureBoard(dims) {
     numberOfDots = dims.key;
     dotsHorizontal = dims.value.$1;
     dotsVertical = dims.value.$2;
-    debugPrint(
-        'Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
+    debugPrint('Nbr of dots set to $numberOfDots, dims set to ($dotsHorizontal, $dotsVertical)');
 
     dots = {};
     for (int x = 0; x < dotsHorizontal; x++) {
@@ -105,14 +111,14 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       }
     }
 
-    debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
-    debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
-    debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
+    // debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
+    // debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
+    // debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
 
     resetGame();
   }
 
-  void resetGame() {
+  resetGame() {
     for (final line in lines) {
       line.drawer = Who.nobody;
     }
@@ -165,8 +171,27 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       final width = constraints.maxWidth;
       final height = constraints.maxHeight;
       return Stack(children: [
-        DrawBoxes(width, height, boxes),
-        DrawDots(width, height, dots, onLineRequested: onLineRequested),
+        Positioned(
+            left: width * 0.3,
+            top: 0,
+            width: width * 0.4,
+            height: height * 0.1,
+            child: Slider(
+                value: sliderValue,
+                min: 0,
+                max: dimChoices.length.toDouble() - 1,
+                divisions: dimChoices.length - 1,
+                label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
+                onChanged: onSliderChanged)),
+        Positioned(
+            left: 0,
+            top: height * 0.1,
+            width: width,
+            height: height * 0.9,
+            child: Stack(children: [
+              DrawBoxes(width, height, boxes),
+              DrawDots(width, height, dots, onLineRequested: onLineRequested),
+            ])),
         if (winnerText.isNotEmpty)
           AlertDialog(
             title: const Text('Game Over'),
@@ -195,9 +220,24 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               Text(('{:7d}'.format(player.score)),
                   style: TextStyle(fontWeight: FontWeight.bold, color: player.color))
             ]),
-        ]),
+        ])
       ]);
     });
+  }
+
+  onSliderChanged(double value) {
+    debugPrint("Slider tab set to $value");
+    sliderValue = value;
+    setState(() {});
+
+    var dims = dimChoices.entries
+        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[value.floor()])
+        .first;
+    debugPrint("dims=$dims");
+    if (dims.key != numberOfDots) {
+      debugPrint("Changing board!");
+      configureBoard(dims);
+    }
   }
 
   onLineRequested(Dot src, Dot dest) {
@@ -213,7 +253,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
           if (box.isClosed()) {
             box.closer = currentPlayer;
             closedABox = true;
-            players[currentPlayer]?.score = boxes.where((box) => box.closer == currentPlayer).length;
+            players[currentPlayer]?.score =
+                boxes.where((box) => box.closer == currentPlayer).length;
           }
         }
 

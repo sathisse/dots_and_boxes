@@ -212,8 +212,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         for (final box in boxes.where((box) => box.lines.containsKey(line))) {
           if (box.isClosed()) {
             box.closer = currentPlayer;
-            players[currentPlayer]?.score++;
             closedABox = true;
+            players[currentPlayer]?.score = boxes.where((box) => box.closer == currentPlayer).length;
           }
         }
 

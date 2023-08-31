@@ -5,6 +5,8 @@ void main() {
   runApp(const MyApp());
 }
 
+const windowMargin = 8.0;
+
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
@@ -17,7 +19,7 @@ class MyApp extends StatelessWidget {
         ),
         body: Center(
           child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+              padding: const EdgeInsets.symmetric(horizontal: windowMargin, vertical: windowMargin),
               child: const DotsAndBoxesGame()),
         ),
       ),

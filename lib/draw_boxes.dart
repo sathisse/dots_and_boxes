@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'dots_and_boxes_game.dart';
 import 'box.dart';
 
+const boxMargin = 5.0;
+
 class DrawBoxes extends StatelessWidget {
   final double width;
   final double height;
@@ -79,11 +81,11 @@ class BoxPainter extends CustomPainter {
 
     if (box.isClosed()) {
       final Path boxPath = Path()
-        ..moveTo(0 + 5, 0 + 5)
-        ..lineTo(size.width - 5, 0 + 5)
-        ..lineTo(size.width - 5, size.height - 5)
-        ..lineTo(0 + 5, size.height - 5)
-        ..lineTo(0 + 5, 0 + 5);
+        ..moveTo(0 + boxMargin, 0 + boxMargin)
+        ..lineTo(size.width - boxMargin, 0 + boxMargin)
+        ..lineTo(size.width - boxMargin, size.height - boxMargin)
+        ..lineTo(0 + boxMargin, size.height - boxMargin)
+        ..lineTo(0 + boxMargin, 0 + boxMargin);
 
       Paint fillPaint = Paint()
         ..style = PaintingStyle.fill

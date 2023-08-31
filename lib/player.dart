@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 
 class Player {
+  final String name;
   final Color color;
+  int score = 0;
 
-  Player(this.color);
+  Player(this.name, this.color);
 
   @override
   String toString() {

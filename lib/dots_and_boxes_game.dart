@@ -1,5 +1,6 @@
 import 'dart:core';
 import 'package:flutter/material.dart';
+import 'package:format/format.dart';
 
 import 'dot.dart';
 import 'line.dart';
@@ -15,15 +16,14 @@ enum Who { nobody, p1, p2 }
 
 typedef Coord = (int x, int y);
 
-
 int numberOfDots = 9;
 late final int dotsHorizontal;
 late final int dotsVertical;
 
 final Map<Who, Player> players = {
-  Who.nobody: Player(Colors.transparent),
-  Who.p1: Player(Colors.orange),
-  Who.p2: Player(Colors.blue)
+  Who.nobody: Player("", Colors.transparent),
+  Who.p1: Player("Player 1", Colors.orange),
+  Who.p2: Player("Player 2", Colors.blue)
 };
 
 class DotsAndBoxesGame extends StatefulWidget {
@@ -166,6 +166,24 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       return Stack(children: [
         DrawBoxes(width, height, boxes),
         DrawDots(width, height, dots, onLineRequested: onLineRequested),
+        IconButton(
+          icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
+          tooltip: 'Restart game',
+          onPressed: () {
+            log.d('Undoing last move');
+            endGame();
+          },
+        ),
+        Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+          for (final player in players.values.skip(1))
+            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+              Text("${player.name}: ",
+                  style: TextStyle(fontWeight: FontWeight.bold, color: player.color)),
+              const SizedBox(height: 10),
+              Text(('{:7d}'.format(player.score)),
+                  style: TextStyle(fontWeight: FontWeight.bold, color: player.color))
+            ]),
+        ]),
       ]);
     });
   }
@@ -182,6 +200,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         for (final box in boxes.where((box) => box.lines.containsKey(line))) {
           if (box.isClosed()) {
             box.closer = currentPlayer;
+            players[currentPlayer]?.score++;
             closedABox = true;
           }
         }

@@ -37,6 +37,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late final Set<Dot> dots; // These are always displayed.
   late final Set<Line> lines; // These are only displayed if drawn.
   late final Set<Box> boxes; // These are only displayed if closed.
+  Who currentPlayer = Who.p1;
 
   @override
   void initState() {
@@ -49,7 +50,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     numberOfDots = dims.key;
     dotsHorizontal = dims.value.$1;
     dotsVertical = dims.value.$2;
-    debugPrint('Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
+    debugPrint(
+        'Nbr of dots set to $numberOfDots, dimensions set to ($dotsHorizontal, $dotsVertical)');
 
     dots = {};
     for (int x = 0; x < dotsHorizontal; x++) {
@@ -102,6 +104,10 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       }
     }
 
+    debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
+    debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
+    debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
+
     resetGame();
   }
 
@@ -112,13 +118,17 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     for (final box in boxes) {
       box.closer = Who.nobody;
     }
+    for (final player in players.values) {
+      player.score = 0;
+    }
+
+    currentPlayer = Who.p1;
+    winnerText = "";
+
+    setState(() {});
 
     // TODO: For testing, close some (or all) of the boxes:
     // Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
-
-    debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
-    debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
-    debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
   }
 
   // For testing, not actual game-play:
@@ -166,14 +176,37 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         debugPrint("Line is not valid");
 
       case [Line line]:
-        line.drawer = Who.p1;
+        line.drawer = currentPlayer;
 
+        var closedABox = false;
         for (final box in boxes.where((box) => box.lines.containsKey(line))) {
           if (box.isClosed()) {
-            box.closer = Who.p1;
+            box.closer = currentPlayer;
+            closedABox = true;
           }
         }
-        setState(() {});
+
+        if (boxes.where((box) => box.closer == Who.nobody).isEmpty) {
+          endGame();
+        } else if (!closedABox) {
+          switchPlayer();
+        }
     }
+
+    setState(() {});
+  }
+
+  switchPlayer() {
+    // Switch players:
+    if (currentPlayer == Who.p1) {
+      currentPlayer = Who.p2;
+    } else {
+      currentPlayer = Who.p1;
+    }
+  }
+
+  endGame() {
+    // Show end-game popup
+
   }
 }

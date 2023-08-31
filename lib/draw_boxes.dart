@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import 'dots_and_boxes_game.dart';
@@ -19,7 +17,6 @@ class DrawBoxes extends StatelessWidget {
   DrawBoxes(this.width, this.height, this.boxes, {super.key}) {
     boxWidth = width / dotsHorizontal;
     boxHeight = height / dotsVertical;
-    halfDotSize = min(boxWidth, boxHeight) * halfDotSizeFactor;
   }
 
   @override
@@ -27,8 +24,8 @@ class DrawBoxes extends StatelessWidget {
     return Stack(children: <Widget>[
       for (final box in boxes)
         Positioned(
-          left: boxWidth * (box.position.$1 + 0.4) + halfDotSize,
-          top: boxHeight * (box.position.$2 + 0.4) + halfDotSize,
+          left: boxWidth * box.position.$1 + boxWidth / 2,
+          top: boxHeight * box.position.$2 + boxHeight / 2,
           width: boxWidth,
           height: boxHeight,
           child: CustomPaint(

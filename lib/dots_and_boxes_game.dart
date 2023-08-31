@@ -15,8 +15,6 @@ enum Who { nobody, p1, p2 }
 
 typedef Coord = (int x, int y);
 
-const dotSizeFactor = 1 / 6;
-const halfDotSizeFactor = dotSizeFactor / 2;
 
 int numberOfDots = 9;
 late final int dotsHorizontal;

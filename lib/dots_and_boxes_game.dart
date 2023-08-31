@@ -38,6 +38,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late final Set<Line> lines; // These are only displayed if drawn.
   late final Set<Box> boxes; // These are only displayed if closed.
   Who currentPlayer = Who.p1;
+  String winnerText = "";
 
   @override
   void initState() {
@@ -166,6 +167,17 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       return Stack(children: [
         DrawBoxes(width, height, boxes),
         DrawDots(width, height, dots, onLineRequested: onLineRequested),
+        if (winnerText.isNotEmpty)
+          AlertDialog(
+            title: const Text('Game Over'),
+            content: Text(winnerText),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => resetGame(),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
         IconButton(
           icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
           tooltip: 'Restart game',
@@ -226,6 +238,27 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
   endGame() {
     // Show end-game popup
+    var hiScore = -1;
+    var tie = false;
+    var winner = Who.nobody.name;
 
+    for (final player in players.values.skip(1)) {
+      if (player.score == hiScore) {
+        tie = true;
+      } else if (player.score > hiScore) {
+        tie = false;
+        winner = player.name;
+        hiScore = player.score;
+      }
+    }
+
+    if (tie) {
+      winnerText = "The game ended in a tie.";
+    } else {
+      winnerText = "$winner wins with $hiScore boxes closed!";
+    }
+    debugPrint(winnerText);
+
+    setState(() {});
   }
 }

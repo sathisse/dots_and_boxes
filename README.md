@@ -1,16 +1,13 @@
-# dots_and_boxes
+# dots_and_boxes_game
 
-A group implemente version of the dots and boxes game in Flutter.
+![Dots and Boxes Game](/dots%20and%20boxes%20game.png)
 
-## Getting Started
+### Authors:
+This project is being developed cooperatively by members of the following meetup groups:
+* [Tampa Bay Android Developers Group](https://www.meetup.com/Tampa-Bay-Android-Developers-Group/)
+* [GDG SunCoast](https://www.meetup.com/GDGSUNCOAST/)
 
-This project is a starting point for a Flutter application.
+This project is a group-implemented version of the [Dots and Boxes game](https://en.wikipedia.org/wiki/Dots_and_boxes).
 
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+As provided, this will only build on the Linux platform. To build for the other platforms, enter
+`flutter create .` on a terminal command line while in the project directory.

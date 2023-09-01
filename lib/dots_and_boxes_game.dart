@@ -167,62 +167,48 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(builder: (context, constraints) {
-      final width = constraints.maxWidth;
-      final height = constraints.maxHeight;
-      return Stack(children: [
-        Positioned(
-            left: width * 0.3,
-            top: 0,
-            width: width * 0.4,
-            height: height * 0.1,
-            child: Slider(
-                value: sliderValue,
-                min: 0,
-                max: dimChoices.length.toDouble() - 1,
-                divisions: dimChoices.length - 1,
-                label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
-                onChanged: onSliderChanged)),
-        Positioned(
-            left: 0,
-            top: height * 0.1,
-            width: width,
-            height: height * 0.9,
-            child: Stack(children: [
-              DrawBoxes(width, height, boxes),
-              DrawDots(width, height, dots, onLineRequested: onLineRequested),
-            ])),
-        if (winnerText.isNotEmpty)
-          AlertDialog(
-            title: const Text('Game Over'),
-            content: Text(winnerText),
-            actions: <Widget>[
-              TextButton(
-                onPressed: () => resetGame(),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        IconButton(
-          icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
-          tooltip: 'Restart game',
-          onPressed: () {
-            log.d('Undoing last move');
-            endGame();
-          },
+    return Stack(children: [
+      Slider(
+          value: sliderValue,
+          min: 0,
+          max: dimChoices.length.toDouble() - 1,
+          divisions: dimChoices.length - 1,
+          label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
+          onChanged: onSliderChanged),
+      Stack(children: [
+        DrawBoxes(boxes),
+        DrawDots(dots, onLineRequested: onLineRequested),
+      ]),
+      if (winnerText.isNotEmpty)
+        AlertDialog(
+          title: const Text('Game Over'),
+          content: Text(winnerText),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => resetGame(),
+              child: const Text('OK'),
+            ),
+          ],
         ),
-        Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-          for (final player in players.values.skip(1))
-            Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-              Text("${player.name}: ",
-                  style: TextStyle(fontWeight: FontWeight.bold, color: player.color)),
-              const SizedBox(height: 10),
-              Text(('{:7d}'.format(player.score)),
-                  style: TextStyle(fontWeight: FontWeight.bold, color: player.color))
-            ]),
-        ])
-      ]);
-    });
+      IconButton(
+        icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
+        tooltip: 'Restart game',
+        onPressed: () {
+          log.d('Undoing last move');
+          endGame();
+        },
+      ),
+      Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+        for (final player in players.values.skip(1))
+          Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+            Text("${player.name}: ",
+                style: TextStyle(fontWeight: FontWeight.bold, color: player.color)),
+            const SizedBox(height: 10),
+            Text(('{:7d}'.format(player.score)),
+                style: TextStyle(fontWeight: FontWeight.bold, color: player.color))
+          ]),
+      ])
+    ]);
   }
 
   onSliderChanged(double value) {

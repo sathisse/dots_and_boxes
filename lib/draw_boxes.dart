@@ -6,32 +6,31 @@ import 'box.dart';
 const boxMargin = 5.0;
 
 class DrawBoxes extends StatelessWidget {
-  final double width;
-  final double height;
   final Set<Box> boxes;
 
-  late final double boxWidth;
-  late final double boxHeight;
-  late final double halfDotSize;
-
-  DrawBoxes(this.width, this.height, this.boxes, {super.key}) {
-    boxWidth = width / dotsHorizontal;
-    boxHeight = height / dotsVertical;
-  }
+  const DrawBoxes(this.boxes, {super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Stack(children: <Widget>[
-      for (final box in boxes)
-        Positioned(
-          left: boxWidth * box.position.$1 + boxWidth / 2,
-          top: boxHeight * box.position.$2 + boxHeight / 2,
-          width: boxWidth,
-          height: boxHeight,
-          child: CustomPaint(
-              size: Size(boxWidth, boxHeight), painter: BoxPainter(Size(boxWidth, boxHeight), box)),
-        )
-    ]);
+    return LayoutBuilder(builder: (context, constraints) {
+      final double width = constraints.maxWidth;
+      final double height = constraints.maxHeight;
+      final double boxWidth = width / dotsHorizontal;
+      final double boxHeight = height / dotsVertical;
+
+      return Stack(children: <Widget>[
+        for (final box in boxes)
+          Positioned(
+            left: boxWidth * box.position.$1 + boxWidth / 2,
+            top: boxHeight * box.position.$2 + boxHeight / 2,
+            width: boxWidth,
+            height: boxHeight,
+            child: CustomPaint(
+                size: Size(boxWidth, boxHeight),
+                painter: BoxPainter(Size(boxWidth, boxHeight), box)),
+          )
+      ]);
+    });
   }
 }
 

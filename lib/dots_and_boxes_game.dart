@@ -85,9 +85,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         boxDots.add(se);
         boxDots.add(sw);
 
-        for (final dot in boxDots) {
-          dot.boxes.add(box);
-        }
+        // for (final dot in boxDots) {
+        //   dot.boxes.add(box);
+        // }
 
         // Create lines that surround the box:
         var n = Line(nw.position, ne.position);

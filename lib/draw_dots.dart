@@ -48,15 +48,18 @@ class DrawDots extends StatelessWidget {
                           feedback: SvgPicture.asset('assets/pencil.svg',
                               width: pencilSize,
                               height: pencilSize,
-                              colorFilter: const ColorFilter.mode(Colors.black, BlendMode.dst)),
+                              colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn)),
+                              // ),
                           childWhenDragging: SvgPicture.asset('assets/dot.svg',
                               width: dotSize,
                               height: dotSize,
-                              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn)),
+                            colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn)),
+                              // ),
                           child: SvgPicture.asset('assets/dot.svg',
                               width: dotSize,
                               height: dotSize,
-                              colorFilter: const ColorFilter.mode(Colors.black, BlendMode.dst)));
+                            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn)));
+                              // ));
                     },
                     onWillAccept: (data) {
                       // debugPrint("in onWillAccept with dst $dot and src $data");

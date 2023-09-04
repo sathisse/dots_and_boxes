@@ -48,8 +48,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late Who currentPlayer;
   late String winnerText;
 
+  late bool showRestartConfirmation;
+  late bool showResizeConfirmation;
   late RestartableTimer confirmationTimer;
-  bool showResizeConfirmation = false;
 
   @override
   void initState() {
@@ -130,6 +131,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   resetGame() {
+    showRestartConfirmation = false;
+    showResizeConfirmation = false;
+
     for (final line in lines) {
       line.drawer = Who.nobody;
     }
@@ -194,8 +198,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
               tooltip: 'Restart game',
               onPressed: () {
-                log.d('Undoing last move');
-                endGame();
+                showRestartConfirmation = true;
+                setState(() {});
               },
             ),
             Expanded(
@@ -232,6 +236,25 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
             content: Text(winnerText),
             actions: <Widget>[
               TextButton(onPressed: () => resetGame(), child: const Text('OK')),
+            ],
+          ),
+        if (showRestartConfirmation)
+          AlertDialog(
+            title: const Text('Confirm game restart'),
+            content: const Text("Restart game now?"),
+            actions: <Widget>[
+              TextButton(
+                  onPressed: () {
+                    showRestartConfirmation = false;
+                    endGame();
+                  },
+                  child: const Text('Yes, restart game')),
+              TextButton(
+                  onPressed: () {
+                    showRestartConfirmation = false;
+                    setState(() {});
+                  },
+                  child: const Text('No, continue game')),
             ],
           ),
         if (showResizeConfirmation)

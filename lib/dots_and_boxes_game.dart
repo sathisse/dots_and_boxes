@@ -4,6 +4,7 @@ import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:format/format.dart';
+import 'package:async/async.dart';
 
 import 'dot.dart';
 import 'line.dart';
@@ -47,10 +48,17 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late Who currentPlayer;
   late String winnerText;
 
+  late RestartableTimer confirmationTimer;
+  bool showResizeConfirmation = false;
+
   @override
   void initState() {
     super.initState();
 
+    // Create and immediately cancel the restart confirmation timer:
+    confirmationTimer =
+        RestartableTimer(const Duration(milliseconds: 500), () => showRestartConfirmationDialog());
+    confirmationTimer.cancel();
     debugPrint('Dimension choices are: $dimChoices');
     sliderValue = 4;
     configureBoard(
@@ -226,24 +234,59 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               TextButton(onPressed: () => resetGame(), child: const Text('OK')),
             ],
           ),
+        if (showResizeConfirmation)
+          AlertDialog(
+            title: const Text('Confirm game restart and resize'),
+            content: const Text("Resizing game requires restarting first; resize now?"),
+            actions: <Widget>[
+              TextButton(
+                  onPressed: () => restartAndResizeGame(),
+                  child: const Text('Yes, restart & resize game')),
+              TextButton(
+                  onPressed: () => abortRestartAndResizeGame(),
+                  child: const Text('No, continue current game')),
+            ],
+          ),
       ]);
     });
   }
 
   onSliderChanged(double value) {
-    // TODO: Add a confirmation if a game is already in progress:
-    debugPrint("Slider tab set to $value");
+    debugPrint("Slider tab set to ${value.round()}");
+
+    // Reset (restart) any transient confirmation timer:
+    confirmationTimer.reset();
+
     sliderValue = value;
     setState(() {});
+  }
 
-    var dims = dimChoices.entries
-        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[value.floor()])
-        .first;
-    debugPrint("dims=$dims");
+  showRestartConfirmationDialog() {
+    // If size actually changed, show the restart confirmation dialog:
+    if (dimChoices.keys.toList()[sliderValue.round()] != numberOfDots) {
+      showResizeConfirmation = true;
+      setState(() {});
+    }
+  }
+
+  restartAndResizeGame() {
+    var newSize = dimChoices.keys.toList()[sliderValue.round()];
+    var dims = dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= newSize).first;
     if (dims.key != numberOfDots) {
-      debugPrint("Changing board!");
+      debugPrint("Changing size to $newSize with dimensions $dims!");
       configureBoard(dims);
     }
+    showResizeConfirmation = false;
+    setState(() {});
+  }
+
+  abortRestartAndResizeGame() {
+    var oldSliderValue = dimChoices.keys.indexed.where((pair) => pair.$2 == numberOfDots).single.$1;
+    sliderValue = oldSliderValue.toDouble();
+    debugPrint("Aborting restart; number of dots kept at $numberOfDots, slider at $oldSliderValue");
+
+    showResizeConfirmation = false;
+    setState(() {});
   }
 
   onLineRequested(Dot src, Dot dest) {

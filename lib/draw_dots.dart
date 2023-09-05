@@ -24,6 +24,8 @@ class DrawDots extends StatelessWidget {
       final double dotSize = min(boxWidth, boxHeight);
       final double pencilSize = dotSize / 3;
 
+      Color dotColor = Colors.black;
+
       return Stack(children: <Widget>[
         for (final dot in dots)
           Positioned(
@@ -58,16 +60,20 @@ class DrawDots extends StatelessWidget {
                           child: SvgPicture.asset('assets/dot.svg',
                               width: dotSize,
                               height: dotSize,
-                            colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn)));
+                            colorFilter: ColorFilter.mode(dotColor, BlendMode.srcIn)));
                               // ));
                     },
                     onWillAccept: (data) {
+                      dotColor = Colors.grey;
                       // debugPrint("in onWillAccept with dst $dot and src $data");
                       return dot.position != data?.position;
                     },
                     onAccept: (data) {
                       // debugPrint("in onAccept with dst $dot and src $data");
                       onLineRequested(data, dot);
+                    },
+                    onLeave: (dot) {
+                      dotColor = Colors.black;
                     },
                   )))
       ]);

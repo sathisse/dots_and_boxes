@@ -206,7 +206,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
                 child: Slider(
                     value: sliderValue,
                     max: dimChoices.length.toDouble() - 1,
-                    divisions: dimChoices.length - 1,
+                    divisions: dimChoices.length - 2,
                     label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
                     onChanged: onSliderChanged)),
             const SizedBox(width: 20),

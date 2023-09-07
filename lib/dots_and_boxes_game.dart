@@ -285,9 +285,16 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   showRestartConfirmationDialog() {
-    // If size actually changed, show the restart confirmation dialog:
+    // If size actually changed:
     if (dimChoices.keys.toList()[sliderValue.round()] != numberOfDots) {
-      showResizeConfirmation = true;
+      // If any lines have been drawn yet:
+      if (lines.where((line) => line.drawer != Who.nobody).isNotEmpty) {
+        // Show the restart confirmation dialog:
+        showResizeConfirmation = true;
+      } else {
+        restartAndResizeGame();
+      }
+
       setState(() {});
     }
   }

@@ -24,8 +24,6 @@ class DrawDots extends StatelessWidget {
       final double pencilSize = min(boxWidth, boxHeight) / 3;
 
       Color dotColor = Colors.black;
-      debugPrint("Horizontal = $dotsHorizontal, vertical = $dotsVertical");
-      debugPrint("width/height=($width, $height); bw/bh=($boxWidth, $boxHeight)");
       return Stack(children: <Widget>[
         for (final dot in dots)
           Positioned(

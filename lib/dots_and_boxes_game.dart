@@ -182,7 +182,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
-        quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
+      quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
       return Stack(children: [
         Column(children: [
@@ -207,10 +207,17 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               for (final player in players.values.skip(1))
                 Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                   Text("${player.name}: ",
-                      style: TextStyle(fontWeight: FontWeight.bold, color: player.color)),
+                      // TODO: Include an assets-based font and set a global text style in main.dart:
+                      style: TextStyle(
+                          fontFamily: "RobotoMono",
+                          fontWeight: FontWeight.bold,
+                          color: player.color)),
                   const SizedBox(height: 20),
-                  Text(('{:7d}'.format(player.score)),
-                      style: TextStyle(fontWeight: FontWeight.bold, color: player.color))
+                  Text(('{:3d}'.format(player.score)),
+                      style: TextStyle(
+                          fontFamily: "RobotoMono",
+                          fontWeight: FontWeight.bold,
+                          color: player.color)),
                 ]),
             ]),
           ]),
@@ -340,7 +347,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   switchPlayer() {
-    // Switch players:
     if (currentPlayer == Who.p1) {
       currentPlayer = Who.p2;
     } else {
@@ -349,7 +355,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   }
 
   endGame() {
-    // Show end-game popup
     var hiScore = -1;
     var tie = false;
     var winner = Who.nobody.name;

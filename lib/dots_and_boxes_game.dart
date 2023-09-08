@@ -1,6 +1,4 @@
 import 'dart:core';
-import 'dart:math';
-import 'dart:io' show Platform;
 
 import 'package:flutter/material.dart';
 import 'package:format/format.dart';
@@ -183,14 +181,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      late final double angle;
-      if (Platform.isAndroid) {
-        // TODO: Rotation isn't working on Android; the sizing isn't correct for portrait:
-        // Perhaps use MediaQuery.of(context).size (and consider padding) instead?
-        angle = 0;
-      } else {
-        angle = constraints.maxWidth < constraints.maxHeight ? -pi / 2 : 0;
-      }
+      late final int quarterTurns;
+        quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
+
       return Stack(children: [
         Column(children: [
           Row(children: [
@@ -210,7 +203,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
                     label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
                     onChanged: onSliderChanged)),
             const SizedBox(width: 20),
-            Column(mainAxisAlignment: MainAxisAlignment.start, children: [
+            Column(children: [
               for (final player in players.values.skip(1))
                 Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                   Text("${player.name}: ",
@@ -222,9 +215,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
             ]),
           ]),
           Expanded(
-              // TODO: Rotation doesn't work on Android; the sizing isn't correct for portrait orientation:
-              child: Transform.rotate(
-                  angle: angle,
+              child: RotatedBox(
+                  quarterTurns: quarterTurns,
                   child: Stack(children: [
                     DrawBoxes(boxes),
                     DrawDots(dots, onLineRequested: onLineRequested),

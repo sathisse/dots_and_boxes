@@ -21,16 +21,16 @@ class DrawDots extends StatelessWidget {
       final double height = constraints.maxHeight;
       final double boxWidth = width / dotsHorizontal;
       final double boxHeight = height / dotsVertical;
-      final double dotSize = min(boxWidth, boxHeight);
-      final double pencilSize = dotSize / 3;
+      final double pencilSize = min(boxWidth, boxHeight) / 3;
 
       Color dotColor = Colors.black;
-
+      debugPrint("Horizontal = $dotsHorizontal, vertical = $dotsVertical");
+      debugPrint("width/height=($width, $height); bw/bh=($boxWidth, $boxHeight)");
       return Stack(children: <Widget>[
         for (final dot in dots)
           Positioned(
-              left: boxWidth * (dot.position.$1),
-              top: boxHeight * (dot.position.$2),
+              left: boxWidth * dot.position.$1,
+              top: boxHeight * dot.position.$2,
               width: boxWidth,
               height: boxHeight,
               child: Container(
@@ -51,17 +51,17 @@ class DrawDots extends StatelessWidget {
                               width: pencilSize,
                               height: pencilSize,
                               colorFilter: const ColorFilter.mode(Colors.black, BlendMode.srcIn)),
-                              // ),
+                          // ),
                           childWhenDragging: SvgPicture.asset('assets/dot.svg',
-                              width: dotSize,
-                              height: dotSize,
-                            colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn)),
-                              // ),
+                              width: boxWidth,
+                              height: boxHeight,
+                              colorFilter: const ColorFilter.mode(Colors.grey, BlendMode.srcIn)),
+                          // ),
                           child: SvgPicture.asset('assets/dot.svg',
-                              width: dotSize,
-                              height: dotSize,
-                            colorFilter: ColorFilter.mode(dotColor, BlendMode.srcIn)));
-                              // ));
+                              width: boxWidth,
+                              height: boxHeight,
+                              colorFilter: ColorFilter.mode(dotColor, BlendMode.srcIn)));
+                      // ));
                     },
                     onWillAccept: (data) {
                       dotColor = Colors.grey;

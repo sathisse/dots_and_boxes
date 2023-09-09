@@ -3,6 +3,7 @@ import 'dart:core';
 import 'package:flutter/material.dart';
 import 'package:format/format.dart';
 import 'package:async/async.dart';
+import "package:minisound/minisound.dart";
 
 import 'dot.dart';
 import 'line.dart';
@@ -37,6 +38,10 @@ class DotsAndBoxesGame extends StatefulWidget {
 
 class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   final dimChoices = getDimensionChoices();
+  final engine = Engine();
+
+  late final Sound yaySound;
+  late final Sound awSound;
 
   late Set<Dot> dots; // These are always displayed.
   late Set<Line> lines; // These are only displayed if drawn.
@@ -53,6 +58,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   @override
   void initState() {
     super.initState();
+    initializeSounds();
 
     // Create and immediately cancel the restart confirmation timer:
     confirmationTimer =
@@ -62,6 +68,13 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     sliderValue = 4;
     configureBoard(
         dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+  }
+
+  Future initializeSounds() async {
+    await engine.init();
+    yaySound = await engine.loadSoundAsset("assets/yay.mp3");
+    awSound = await engine.loadSoundAsset("assets/aw.wav");
+    await engine.start();
   }
 
   configureBoard(dims) {
@@ -370,8 +383,10 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     }
 
     if (tie) {
+      awSound.play();
       winnerText = "The game ended in a tie.";
     } else {
+      yaySound.play();
       winnerText = "$winner wins with $hiScore boxes closed!";
     }
     debugPrint(winnerText);

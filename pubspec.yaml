@@ -39,6 +39,7 @@ dependencies:
   logger: ^2.0.1
   format: ^1.3.0
   async: ^2.11.0
+  minisound: ^1.1.5
 
 dev_dependencies:
   flutter_test:

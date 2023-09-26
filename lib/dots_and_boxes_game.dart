@@ -108,10 +108,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         boxDots.add(se);
         boxDots.add(sw);
 
-        // for (final dot in boxDots) {
-        //   dot.boxes.add(box);
-        // }
-
         // Create lines that surround the box:
         var n = Line(nw.position, ne.position);
         var e = Line(ne.position, se.position);
@@ -143,7 +139,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
   resetGame() {
     showRestartConfirmation = false;
-    showResizeConfirmation = false;
+    gameStarted = false;
 
     for (final line in lines) {
       line.drawer = Who.nobody;
@@ -209,12 +205,15 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               },
             ),
             Expanded(
-                child: Slider(
-                    value: sliderValue,
-                    max: dimChoices.length.toDouble() - 1,
-                    divisions: dimChoices.length - 2,
-                    label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
-                    onChanged: onSliderChanged)),
+                child: AnimatedOpacity(
+                    opacity: gameStarted ? 0.25 : 1,
+                    duration: const Duration(milliseconds: 500),
+                    child: Slider(
+                        value: sliderValue,
+                        max: dimChoices.length.toDouble() - 1,
+                        divisions: dimChoices.length - 2,
+                        label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
+                        onChanged: onSliderChanged))),
             const SizedBox(width: 20),
             Column(children: [
               for (final player in players.values.skip(1))
@@ -269,66 +268,24 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
                   child: const Text('No, continue game')),
             ],
           ),
-        if (showResizeConfirmation)
-          AlertDialog(
-            title: const Text('Confirm game restart and resize'),
-            content: const Text("Resizing game requires restarting first; resize now?"),
-            actions: <Widget>[
-              TextButton(
-                  onPressed: () => restartAndResizeGame(),
-                  child: const Text('Yes, restart & resize game')),
-              TextButton(
-                  onPressed: () => abortRestartAndResizeGame(),
-                  child: const Text('No, continue current game')),
-            ],
-          ),
       ]);
     });
   }
 
   onSliderChanged(double value) {
+    if (gameStarted) return;
     debugPrint("Slider tab set to ${value.round()}");
-
-    // Reset (restart) any transient confirmation timer:
-    confirmationTimer.reset();
 
     sliderValue = value;
     setState(() {});
-  }
 
-  showRestartConfirmationDialog() {
-    // If size actually changed:
-    if (dimChoices.keys.toList()[sliderValue.round()] != numberOfDots) {
-      // If any lines have been drawn yet:
-      if (lines.where((line) => line.drawer != Who.nobody).isNotEmpty) {
-        // Show the restart confirmation dialog:
-        showResizeConfirmation = true;
-      } else {
-        restartAndResizeGame();
-      }
-
-      setState(() {});
-    }
-  }
-
-  restartAndResizeGame() {
-    var newSize = dimChoices.keys.toList()[sliderValue.round()];
-    var dims = dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= newSize).first;
+    var dims = dimChoices.entries
+        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[value.floor()])
+        .first;
+    debugPrint("dims=$dims");
     if (dims.key != numberOfDots) {
-      debugPrint("Changing size to $newSize with dimensions $dims!");
       configureBoard(dims);
     }
-    showResizeConfirmation = false;
-    setState(() {});
-  }
-
-  abortRestartAndResizeGame() {
-    var oldSliderValue = dimChoices.keys.indexed.where((pair) => pair.$2 == numberOfDots).single.$1;
-    sliderValue = oldSliderValue.toDouble();
-    debugPrint("Aborting restart; number of dots kept at $numberOfDots, slider at $oldSliderValue");
-
-    showResizeConfirmation = false;
-    setState(() {});
   }
 
   onLineRequested(Dot src, Dot dest) {
@@ -338,8 +295,9 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
       case [Line line]:
         line.drawer = currentPlayer;
-
+        gameStarted = true;
         var closedABox = false;
+
         for (final box in boxes.where((box) => box.lines.containsKey(line))) {
           if (box.isClosed()) {
             box.closer = currentPlayer;

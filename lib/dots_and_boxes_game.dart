@@ -2,8 +2,7 @@ import 'dart:core';
 
 import 'package:flutter/material.dart';
 import 'package:format/format.dart';
-import 'package:async/async.dart';
-import "package:minisound/minisound.dart";
+import 'package:flame_audio/flame_audio.dart';
 
 import 'dot.dart';
 import 'line.dart';
@@ -38,10 +37,8 @@ class DotsAndBoxesGame extends StatefulWidget {
 
 class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   final dimChoices = getDimensionChoices();
-  final engine = Engine();
 
-  late final Sound yaySound;
-  late final Sound awSound;
+  late final AudioPool yayPool;
 
   late Set<Dot> dots; // These are always displayed.
   late Set<Line> lines; // These are only displayed if drawn.
@@ -52,29 +49,16 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late String winnerText;
 
   late bool showRestartConfirmation;
-  late bool showResizeConfirmation;
-  late RestartableTimer confirmationTimer;
+  late bool gameStarted;
 
   @override
   void initState() {
     super.initState();
-    initializeSounds();
 
-    // Create and immediately cancel the restart confirmation timer:
-    confirmationTimer =
-        RestartableTimer(const Duration(milliseconds: 500), () => showRestartConfirmationDialog());
-    confirmationTimer.cancel();
     debugPrint('Dimension choices are: $dimChoices');
     sliderValue = 4;
     configureBoard(
         dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
-  }
-
-  Future initializeSounds() async {
-    await engine.init();
-    yaySound = await engine.loadSoundAsset("assets/yay.mp3");
-    awSound = await engine.loadSoundAsset("assets/aw.wav");
-    await engine.start();
   }
 
   configureBoard(dims) {
@@ -341,10 +325,10 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     }
 
     if (tie) {
-      awSound.play();
+      FlameAudio.play("aw.wav");
       winnerText = "The game ended in a tie.";
     } else {
-      yaySound.play();
+      FlameAudio.play("yay.mp3");
       winnerText = "$winner wins with $hiScore boxes closed!";
     }
     debugPrint(winnerText);

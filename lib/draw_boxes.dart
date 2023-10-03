@@ -45,7 +45,7 @@ class BoxPainter extends CustomPainter {
       late (double, double) start;
       late (double, double) end;
 
-      switch (line.value) {
+      switch (line.key) {
         case Direction.n:
           start = (0, 0);
           end = (size.width, 0);
@@ -71,7 +71,7 @@ class BoxPainter extends CustomPainter {
       Paint borderPaint = Paint()
         ..strokeWidth = 3
         ..style = PaintingStyle.stroke
-        ..color = players[line.key.drawer]!.color;
+        ..color = players[line.value.drawer]!.color;
       canvas.drawPath(linePath, borderPaint);
     }
 

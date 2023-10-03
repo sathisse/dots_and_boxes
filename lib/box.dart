@@ -8,8 +8,7 @@ part 'box.g.dart';
 @JsonSerializable(explicitToJson: true)
 class Box {
   final Coord position;
-  final
-  Map<Line, Direction> lines = {}; // How many lines are still nobody? If 0, box is closed.
+  Map<Direction, Line> lines = {}; // How many lines are still nobody? If 0, box is closed.
   Who closer = Who.nobody;
 
   Box(this.position);
@@ -24,6 +23,6 @@ class Box {
   }
 
   bool isClosed() {
-    return lines.keys.where((key) => key.drawer == Who.nobody).isEmpty;
+    return lines.values.where((value) => value.drawer == Who.nobody).isEmpty;
   }
 }

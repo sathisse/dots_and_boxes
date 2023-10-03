@@ -105,10 +105,10 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         lines.add(w);
 
         // Add the ones that ended up in the global set to the box:
-        box.lines[lines.where((line) => line == n).single] = Direction.n;
-        box.lines[lines.where((line) => line == e).single] = Direction.e;
-        box.lines[lines.where((line) => line == s).single] = Direction.s;
-        box.lines[lines.where((line) => line == w).single] = Direction.w;
+        box.lines[Direction.n] = lines.where((line) => line == n).single;
+        box.lines[Direction.e] = lines.where((line) => line == e).single;
+        box.lines[Direction.s] = lines.where((line) => line == s).single;
+        box.lines[Direction.w] = lines.where((line) => line == w).single;
 
         boxes.add(box);
       }
@@ -154,7 +154,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       setState(() {});
 
       // TODO: Optimize this (make the mapping two-way?)
-      for (final box in boxes.where((box) => box.lines.containsKey(line))) {
+      for (final box in boxes.where((box) => box.lines.containsValue(line))) {
         if (box.isClosed()) {
           box.closer = player;
           await Future.delayed(const Duration(milliseconds: 500));
@@ -282,7 +282,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
         gameStarted = true;
         var closedABox = false;
 
-        for (final box in boxes.where((box) => box.lines.containsKey(line))) {
+        for (final box in boxes.where((box) => box.lines.containsValue(line))) {
           if (box.isClosed()) {
             box.closer = currentPlayer;
             closedABox = true;

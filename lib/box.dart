@@ -1,12 +1,22 @@
+import 'package:json_annotation/json_annotation.dart';
+
 import 'dots_and_boxes_game.dart';
 import 'line.dart';
 
+part 'box.g.dart';
+
+@JsonSerializable(explicitToJson: true)
 class Box {
   final Coord position;
-  final Map<Line, Direction> lines = {}; // How many lines are still nobody? If 0, box is closed.
+  final
+  Map<Line, Direction> lines = {}; // How many lines are still nobody? If 0, box is closed.
   Who closer = Who.nobody;
 
   Box(this.position);
+
+  factory Box.fromJson(Map<String, dynamic> json) => _$BoxFromJson(json);
+
+  Map<String, dynamic> toJson() => _$BoxToJson(this);
 
   @override
   String toString() {

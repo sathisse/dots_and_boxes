@@ -1,11 +1,19 @@
-import 'dots_and_boxes_game.dart';
+import 'package:json_annotation/json_annotation.dart';
 
+import 'dots_and_boxes_game.dart';
+part 'line.g.dart';
+
+@JsonSerializable(explicitToJson: true)
 class Line {
   final Coord start;
   final Coord end;
   Who drawer = Who.nobody;
 
   Line(this.start, this.end);
+
+  factory Line.fromJson(Map<String, dynamic> json) => _$LineFromJson(json);
+
+  Map<String, dynamic> toJson() => _$LineToJson(this);
 
   @override
   String toString() {

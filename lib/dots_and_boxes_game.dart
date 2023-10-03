@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
@@ -114,9 +115,26 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       }
     }
 
-    // debugPrint('dots={\n  ${dots.join(',\n  ')}\n}');
-    // debugPrint('lines={\n  ${lines.join(',\n  ')}\n}');
-    // debugPrint('boxes={\n  ${boxes.join(',\n\n  ')} \n }');
+    var dotsJson = json.encode(dots.toList().map((dot) => dot.toJson()).toList());
+    debugPrint('\ndots.json (${dotsJson.length} chars) = $dotsJson');
+    debugPrint('old dots={${dots.join(',  ')}}');
+    Set<Dot> newDots = (json.decode(dotsJson) as List).map((i) => Dot.fromJson(i)).toSet();
+    debugPrint('new dots={${newDots.join(',  ')}}');
+    // dots = newDots;
+
+    var boxesJson = json.encode(boxes.toList().map((box) => box.toJson()).toList());
+    debugPrint('\nboxes.json (${boxesJson.length} chars) = $boxesJson');
+    debugPrint('old boxes={${boxes.join(',  ')} }');
+    Set<Box> newBoxes = (json.decode(boxesJson) as List).map((i) => Box.fromJson(i)).toSet();
+    debugPrint('new boxes={${newBoxes.join(',  ')}}');
+    // boxes = newBoxes;
+
+    var linesJson = json.encode(lines.toList().map((line) => line.toJson()).toList());
+    debugPrint('\nlines.json (${linesJson.length} chars) = $linesJson');
+    debugPrint('old lines={${lines.join(',  ')}}');
+    Set<Line> newLines = (json.decode(linesJson) as List).map((i) => Line.fromJson(i)).toSet();
+    debugPrint('new lines={${newLines.join(',  ')}}');
+    // lines = newLines;
 
     resetGame();
   }
@@ -140,7 +158,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
     setState(() {});
 
-    // TODO: For testing, close some (or all) of the boxes:
+    // For testing, close some (or all) of the boxes:
     // Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
   }
 
@@ -153,7 +171,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       await Future.delayed(const Duration(milliseconds: 500));
       setState(() {});
 
-      // TODO: Optimize this (make the mapping two-way?)
       for (final box in boxes.where((box) => box.lines.containsValue(line))) {
         if (box.isClosed()) {
           box.closer = player;
@@ -203,7 +220,6 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
               for (final player in players.values.skip(1))
                 Row(mainAxisAlignment: MainAxisAlignment.end, children: [
                   Text("${player.name}: ",
-                      // TODO: Include an assets-based font and set a global text style in main.dart:
                       style: TextStyle(
                           fontFamily: "RobotoMono",
                           fontWeight: FontWeight.bold,

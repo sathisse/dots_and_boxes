@@ -23,7 +23,6 @@ class Line {
   // Only include the coordinates (in either order) to determine equality:
   @override
   bool operator ==(Object other) {
-    // TODO: Make the coords be a set and compare the sets?
     return other is Line &&
         ((start == other.start && end == other.end) || (start == other.end && end == other.start));
   }

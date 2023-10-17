@@ -17,12 +17,17 @@ enum MsgType {
 }
 
 void main() {
-  runApp(const MyApp());
+  runApp(const GameConnection());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class GameConnection extends StatefulWidget {
+  const GameConnection({super.key});
 
+  @override
+  State<GameConnection> createState() => _ConnectGame();
+}
+
+class _ConnectGame extends State<GameConnection> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -35,10 +40,10 @@ class MyApp extends StatelessWidget {
         ),
         themeMode: ThemeMode.dark,
         home: Scaffold(
-            appBar: AppBar(
-              title: const Text('Dots and Boxes Game'),
-            ),
-            body: const MyHomePage(),
+          appBar: AppBar(
+            title: const Text('Dots and Boxes Game'),
+          ),
+          body: const MyHomePage(),
         ));
   }
 }

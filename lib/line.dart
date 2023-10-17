@@ -1,6 +1,7 @@
 import 'package:json_annotation/json_annotation.dart';
 
 import 'dots_and_boxes_game.dart';
+
 part 'line.g.dart';
 
 @JsonSerializable(explicitToJson: true)

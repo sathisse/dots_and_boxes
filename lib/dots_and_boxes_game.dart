@@ -1,4 +1,4 @@
-import 'dart:convert';
+// import 'dart:convert';
 import 'dart:core';
 
 import 'package:flutter/material.dart';
@@ -38,8 +38,6 @@ class DotsAndBoxesGame extends StatefulWidget {
 
 class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   final dimChoices = getDimensionChoices();
-
-  late final AudioPool yayPool;
 
   late Set<Dot> dots; // These are always displayed.
   late Set<Line> lines; // These are only displayed if drawn.
@@ -115,27 +113,25 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       }
     }
 
+/*
     var dotsJson = json.encode(dots.toList().map((dot) => dot.toJson()).toList());
-    debugPrint('\ndots.json (${dotsJson.length} chars) = $dotsJson');
+    debugPrint('\n dots.json (${dotsJson.length} chars) = $dotsJson');
     debugPrint('old dots={${dots.join(',  ')}}');
     Set<Dot> newDots = (json.decode(dotsJson) as List).map((i) => Dot.fromJson(i)).toSet();
     debugPrint('new dots={${newDots.join(',  ')}}');
-    // dots = newDots;
 
     var boxesJson = json.encode(boxes.toList().map((box) => box.toJson()).toList());
-    debugPrint('\nboxes.json (${boxesJson.length} chars) = $boxesJson');
+    debugPrint('\n boxes.json (${boxesJson.length} chars) = $boxesJson');
     debugPrint('old boxes={${boxes.join(',  ')} }');
     Set<Box> newBoxes = (json.decode(boxesJson) as List).map((i) => Box.fromJson(i)).toSet();
     debugPrint('new boxes={${newBoxes.join(',  ')}}');
-    // boxes = newBoxes;
 
     var linesJson = json.encode(lines.toList().map((line) => line.toJson()).toList());
-    debugPrint('\nlines.json (${linesJson.length} chars) = $linesJson');
+    debugPrint('\n lines.json (${linesJson.length} chars) = $linesJson');
     debugPrint('old lines={${lines.join(',  ')}}');
     Set<Line> newLines = (json.decode(linesJson) as List).map((i) => Line.fromJson(i)).toSet();
     debugPrint('new lines={${newLines.join(',  ')}}');
-    // lines = newLines;
-
+*/
     resetGame();
   }
 

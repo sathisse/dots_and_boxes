@@ -11,3 +11,5 @@ This project is a group-implemented version of the [Dots and Boxes game](https:/
 
 As provided, this will only build on the Linux platform. To build for the other platforms, enter
 `flutter create .` on a terminal command line while in the project directory.
+
+To run the PubNub experiments (that start adding networked clients), run the `pubnub_experiments.dart` file instead of `main.dart`.

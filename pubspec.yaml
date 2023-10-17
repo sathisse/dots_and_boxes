@@ -41,6 +41,8 @@ dependencies:
   async: ^2.11.0
   flame_audio: ^2.0.5
   json_annotation: ^4.8.1
+  pubnub: ^4.2.4
+  uuid: ^4.1.0
 
 dev_dependencies:
   flutter_test:

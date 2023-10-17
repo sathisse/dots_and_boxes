@@ -9,7 +9,7 @@ class Line {
   final Coord end;
   Who drawer = Who.nobody;
 
-  Line(this.start, this.end);
+  Line(this.start, this.end, {this.drawer = Who.nobody});
 
   factory Line.fromJson(Map<String, dynamic> json) => _$LineFromJson(json);
 

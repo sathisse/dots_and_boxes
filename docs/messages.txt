@@ -1,0 +1,43 @@
+First client (p1):
+  * Generates and displays random game ID  (ToDo: Later phase will instead make use of a lobby.)
+  * Creates a channel (using the game ID as a suffix)
+  * Subscribes to channel
+  * Sets current-player to p1
+
+  * Receives Join-request message from channel, then:
+    + If number-of-players < max (2), then:
+      + Increments number of players
+      + Sends Player-added message with player's userId, playerId, and numberOfDots to channel
+      + Configures and builds board (setting current-player to p1)
+      (Otherwise, message is ignored)
+
+
+Other clients client (p2+):
+  * Accepts game ID from user  (ToDo: Later phase will instead make use of a lobby.)
+  * Subscribes to channel (using the game ID as a suffix)
+  * Sends Join-request message to channel
+
+
+All clients:
+  * Receives Player-added message from channel
+    + If targets my userId, then:
+      - Configures and builds board (setting current-player to p1)
+      (Otherwise, message is ignored)
+
+  * If current-player is self,
+    + Accepts/draws line from user
+    + Sends Line-request message to channel (ToDo: Should have next-player field?)
+    + Sets current-player to next (if box not closed)
+
+  * Receives Line-request message from channel
+    + If drawer id not me, then
+      - Draws it (and any closed boxes)
+      - Sets current-player to next (if box not closed)
+      (Otherwise, message is ignored)
+
+  * Receives Leave-game message, then:
+    + ToDo: This will be easy for 2 players, likely harder for more.
+
+  * If end-of-game / all-boxes-closed, then:
+    + Shows end-game popup
+    + ToDo: Allow next player to be p1 and restart game.

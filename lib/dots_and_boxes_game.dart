@@ -1,6 +1,7 @@
 // import 'dart:convert';
 import 'dart:core';
 
+import 'package:dots_and_boxes/game_connection.dart';
 import 'package:flutter/material.dart';
 import 'package:format/format.dart';
 import 'package:flame_audio/flame_audio.dart';
@@ -19,15 +20,16 @@ enum Who { nobody, p1, p2 }
 
 typedef Coord = (int x, int y);
 
-int numberOfDots = 12;
-late int dotsHorizontal;
-late int dotsVertical;
-
 final Map<Who, Player> players = {
   Who.nobody: Player("", Colors.transparent),
   Who.p1: Player("Player 1", Colors.orange),
   Who.p2: Player("Player 2", Colors.blue)
 };
+
+int numberOfDots = 12;
+late int dotsHorizontal;
+late int dotsVertical;
+late bool isConnected;
 
 class DotsAndBoxesGame extends StatefulWidget {
   const DotsAndBoxesGame({super.key});
@@ -49,6 +51,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
 
   late bool showRestartConfirmation;
   late bool gameStarted;
+
+  late bool isConnected = false;
 
   @override
   void initState() {
@@ -191,52 +195,54 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
       return Stack(children: [
-        Column(children: [
-          Row(children: [
-            IconButton(
-              icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
-              tooltip: 'Restart game',
-              onPressed: () {
-                showRestartConfirmation = true;
-                setState(() {});
-              },
-            ),
-            Expanded(
-                child: AnimatedOpacity(
-                    opacity: gameStarted ? 0.25 : 1,
-                    duration: const Duration(milliseconds: 500),
-                    child: Slider(
-                        value: sliderValue,
-                        max: dimChoices.length.toDouble() - 1,
-                        divisions: dimChoices.length - 2,
-                        label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
-                        onChanged: onSliderChanged))),
-            const SizedBox(width: 20),
-            Column(children: [
-              for (final player in players.values.skip(1))
-                Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                  Text("${player.name}: ",
-                      style: TextStyle(
-                          fontFamily: "RobotoMono",
-                          fontWeight: FontWeight.bold,
-                          color: player.color)),
-                  const SizedBox(height: 20),
-                  Text(('{:3d}'.format(player.score)),
-                      style: TextStyle(
-                          fontFamily: "RobotoMono",
-                          fontWeight: FontWeight.bold,
-                          color: player.color)),
-                ]),
+        if (!isConnected) GameConnection(onConnected: onConnected),
+        if (isConnected)
+          Column(children: [
+            Row(children: [
+              IconButton(
+                icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
+                tooltip: 'Restart game',
+                onPressed: () {
+                  showRestartConfirmation = true;
+                  setState(() {});
+                },
+              ),
+              Expanded(
+                  child: AnimatedOpacity(
+                      opacity: gameStarted ? 0.25 : 1,
+                      duration: const Duration(milliseconds: 500),
+                      child: Slider(
+                          value: sliderValue,
+                          max: dimChoices.length.toDouble() - 1,
+                          divisions: dimChoices.length - 2,
+                          label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
+                          onChanged: onSliderChanged))),
+              const SizedBox(width: 20),
+              Column(children: [
+                for (final player in players.values.skip(1))
+                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
+                    Text("${player.name}: ",
+                        style: TextStyle(
+                            fontFamily: "RobotoMono",
+                            fontWeight: FontWeight.bold,
+                            color: player.color)),
+                    const SizedBox(height: 20),
+                    Text(('{:3d}'.format(player.score)),
+                        style: TextStyle(
+                            fontFamily: "RobotoMono",
+                            fontWeight: FontWeight.bold,
+                            color: player.color)),
+                  ]),
+              ]),
             ]),
+            Expanded(
+                child: RotatedBox(
+                    quarterTurns: quarterTurns,
+                    child: Stack(children: [
+                      DrawBoxes(boxes),
+                      DrawDots(dots, onLineRequested: onLineRequested),
+                    ]))),
           ]),
-          Expanded(
-              child: RotatedBox(
-                  quarterTurns: quarterTurns,
-                  child: Stack(children: [
-                    DrawBoxes(boxes),
-                    DrawDots(dots, onLineRequested: onLineRequested),
-                  ]))),
-        ]),
         if (winnerText.isNotEmpty)
           AlertDialog(
             title: const Text('Game Over'),
@@ -345,6 +351,11 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     }
     debugPrint(winnerText);
 
+    setState(() {});
+  }
+
+  onConnected() {
+    isConnected = true;
     setState(() {});
   }
 }

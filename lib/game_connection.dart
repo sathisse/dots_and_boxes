@@ -16,46 +16,18 @@ enum MsgType {
   leave;
 }
 
-void main() {
-  runApp(const GameConnection());
-}
-
 class GameConnection extends StatefulWidget {
-  const GameConnection({super.key});
+  final Function onConnected;
+
+  const GameConnection({required this.onConnected, super.key});
 
   @override
-  State<GameConnection> createState() => _ConnectGame();
+  State<GameConnection> createState() => _GameConnection();
 }
 
-class _ConnectGame extends State<GameConnection> {
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-        title: 'PubNub Experiments',
-        theme: ThemeData(
-          brightness: Brightness.light,
-        ),
-        darkTheme: ThemeData(
-          brightness: Brightness.dark,
-        ),
-        themeMode: ThemeMode.dark,
-        home: Scaffold(
-          appBar: AppBar(
-            title: const Text('Dots and Boxes Game'),
-          ),
-          body: const MyHomePage(),
-        ));
-  }
-}
+class _GameConnection extends State<GameConnection> {
+  _GameConnection();
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key});
-
-  @override
-  State<MyHomePage> createState() => _MyHomePageState();
-}
-
-class _MyHomePageState extends State<MyHomePage> {
   late final String uuid;
   late final PubNub pubnub;
 
@@ -63,7 +35,7 @@ class _MyHomePageState extends State<MyHomePage> {
   late String gameId;
   late String statusTxt;
   late int numPlayers;
-  late bool connected;
+  late bool isConnected;
 
   late Subscription subscription;
   late Channel channel;
@@ -75,7 +47,7 @@ class _MyHomePageState extends State<MyHomePage> {
     gameId = "";
     statusTxt = "";
     numPlayers = 1;
-    connected = false;
+    isConnected = false;
     playerId = Who.nobody;
 
     startPubnub();
@@ -130,11 +102,11 @@ class _MyHomePageState extends State<MyHomePage> {
           const SizedBox(height: 25.0),
           IconButton(
             icon: const Icon(Icons.arrow_right_alt),
-            onPressed: connected ? _sendLineMsg : null,
+            onPressed: isConnected ? _sendLineMsg : null,
           ),
           IconButton(
             icon: const Icon(Icons.person_remove),
-            onPressed: connected ? _sendLeaveMsg : null,
+            onPressed: isConnected ? _sendLeaveMsg : null,
           ),
         ]),
       ),
@@ -160,10 +132,10 @@ class _MyHomePageState extends State<MyHomePage> {
       await subscription.cancel();
       print('Unsubscribed from channel');
     } catch (e) {
-      print('remote unsubscribe call failed');
+      print('remote unsubscribe call failed (probably due to no subscription active)');
     }
 
-    connected = false;
+    isConnected = false;
     statusTxt = 'Unsubscribed from channel';
   }
 
@@ -229,7 +201,8 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     });
 
-    connected = true;
+    isConnected = true;
+    widget.onConnected();
     statusTxt = "Subscribed to '$channelName' as ${creator ? 'p1' : 'non-creator'}";
 
     if (creator) {

@@ -43,6 +43,7 @@ dependencies:
   json_annotation: ^4.8.1
   pubnub: ^4.2.4
   uuid: ^4.1.0
+  flutter_riverpod: ^2.4.9
 
 dev_dependencies:
   flutter_test:

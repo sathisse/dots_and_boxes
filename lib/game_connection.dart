@@ -1,7 +1,7 @@
-// ignore_for_file: avoid_print
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pubnub/pubnub.dart';
 import 'package:uuid/uuid.dart';
 
@@ -16,16 +16,21 @@ enum MsgType {
   leave;
 }
 
-class GameConnection extends StatefulWidget {
+const gameIdLength = 3;
+
+final gameActionsProvider =
+    StateProvider<List<String>>((ref) => <String>["<no connected players>"]);
+
+class GameConnection extends ConsumerStatefulWidget {
   final Function onConnected;
 
   const GameConnection({required this.onConnected, super.key});
 
   @override
-  State<GameConnection> createState() => _GameConnection();
+  ConsumerState<GameConnection> createState() => _GameConnection();
 }
 
-class _GameConnection extends State<GameConnection> {
+class _GameConnection extends ConsumerState<GameConnection> {
   _GameConnection();
 
   late final String uuid;
@@ -118,7 +123,7 @@ class _GameConnection extends State<GameConnection> {
     uuid = const Uuid().v4();
     pubnub = PubNub(
         defaultKeyset: Keyset(subscribeKey: 'demo', publishKey: 'demo', userId: UserId(uuid)));
-    print('My userId is $uuid');
+    debugPrint('My userId is $uuid');
   }
 
   void createGameId() async {
@@ -129,11 +134,11 @@ class _GameConnection extends State<GameConnection> {
 
   void unsubscribeFromChannel() async {
     try {
-      print('Unsubscribing from channel');
+      debugPrint('Unsubscribing from channel');
       await subscription.cancel();
-      print('Unsubscribed from channel');
+      debugPrint('Unsubscribed from channel');
     } catch (e) {
-      print('remote unsubscribe call failed (probably due to no subscription active)');
+      debugPrint('remote unsubscribe call failed (probably due to no subscription active)');
     }
 
     isConnected = false;
@@ -151,11 +156,11 @@ class _GameConnection extends State<GameConnection> {
     // ToDo: if retrying gameId, we dob;t seem to be subscribing to the new channel:
     // Sets up a listener for new messages:
     subscription.messages.forEach((message) {
-      // print('x: ${message.originalMessage}');
+      // debugPrint('x: ${message.originalMessage}');
       if (message.uuid.toString() == uuid) {
-        print('Sent message ${message.payload}');
+        debugPrint('Sent message ${message.payload}');
       } else {
-        print('Received message "${message.payload}"');
+        debugPrint('Received message "${message.payload}"');
       }
 
       MsgType msgType =
@@ -163,7 +168,7 @@ class _GameConnection extends State<GameConnection> {
       switch (msgType) {
         case MsgType.join:
           var userId = message.uuid.value;
-          print(">>>>> Join-request  message from user $userId");
+          debugPrint(">>>>> Join-request  message from user $userId");
           if (playerId == Who.p1) {
             _addPlayer(userId);
           } else {
@@ -175,29 +180,37 @@ class _GameConnection extends State<GameConnection> {
           var newPlayerId =
               Who.values.firstWhere((w) => w.name == json.decode(message.payload['playerId']));
           int numberOfDots = json.decode(message.payload['numberOfDots']);
-          print(">>>>> Player-added message with $userId, $playerId, and $numberOfDots dots");
+          debugPrint(">>>>> Player-added message with $userId, $playerId, and $numberOfDots dots");
+
+          // ref.read(gameActionsProvider.notifier).state.add("anotherAction");
+          ref.read(gameActionsProvider.notifier).state = ref
+              .read(gameActionsProvider.notifier)
+              .state
+              .toList()
+            ..add("${players[newPlayerId]?.name} joined");
+
           if (userId == UserId(uuid).value) {
-            print("That's me! Let's configure the game...");
+            debugPrint("That's me! Let's configure the game...");
             playerId = newPlayerId;
           } else {
-            print("Someone else was added; there's nothing to do.");
+            debugPrint("Someone else was added; there's nothing to do.");
           }
           break;
         case MsgType.rejected:
           String userId = json.decode(message.payload['userId']);
-          print(">>>>> Player-rejected message with $userId");
+          debugPrint(">>>>> Player-rejected message with $userId");
           if (userId == UserId(uuid).value) {
-            print("That's me! Let's let the player know that that can't join the game...");
+            debugPrint("That's me! Let's let the player know that that can't join the game...");
           } else {
-            print("Someone else was rejected; there's nothing to do.");
+            debugPrint("Someone else was rejected; there's nothing to do.");
           }
           break;
         case MsgType.line:
           var line = json.decode(message.payload['line']);
-          print(">>>>> Line-requested message with $line");
+          debugPrint(">>>>> Line-requested message with $line");
           break;
         case MsgType.leave:
-          print(">>>>> Leave-game message");
+          debugPrint(">>>>> Leave-game message");
           break;
       }
     });
@@ -247,7 +260,7 @@ class _GameConnection extends State<GameConnection> {
       numPlayers++;
       _sendAddedMsg(userId, Who.values[numPlayers]);
     } else {
-      print('Max players already joined!');
+      debugPrint('Max players already joined!');
     }
   }
 }

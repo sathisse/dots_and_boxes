@@ -3,6 +3,7 @@ import 'dart:core';
 
 import 'package:dots_and_boxes/game_connection.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:format/format.dart';
 import 'package:flame_audio/flame_audio.dart';
 
@@ -31,14 +32,14 @@ late int dotsHorizontal;
 late int dotsVertical;
 late bool isConnected;
 
-class DotsAndBoxesGame extends StatefulWidget {
+class DotsAndBoxesGame extends ConsumerStatefulWidget {
   const DotsAndBoxesGame({super.key});
 
   @override
-  State<DotsAndBoxesGame> createState() => _DotsAndBoxesGame();
+  ConsumerState<DotsAndBoxesGame> createState() => _DotsAndBoxesGame();
 }
 
-class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
+class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   final dimChoices = getDimensionChoices();
 
   late Set<Dot> dots; // These are always displayed.
@@ -118,7 +119,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
       }
     }
 
-/*
+    /*
     var dotsJson = json.encode(dots.toList().map((dot) => dot.toJson()).toList());
     debugPrint('\n dots.json (${dotsJson.length} chars) = $dotsJson');
     debugPrint('old dots={${dots.join(',  ')}}');
@@ -136,7 +137,8 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     debugPrint('old lines={${lines.join(',  ')}}');
     Set<Line> newLines = (json.decode(linesJson) as List).map((i) => Line.fromJson(i)).toSet();
     debugPrint('new lines={${newLines.join(',  ')}}');
-*/
+    */
+
     resetGame();
   }
 

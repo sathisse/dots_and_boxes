@@ -55,6 +55,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   late bool isConnected = false;
   late String gameId = "<not connected>";
+  late String lastAction = "";
 
   @override
   void initState() {
@@ -193,6 +194,9 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   @override
   Widget build(BuildContext context) {
+    // lastAction = ref.watch(gameActionsProvider).last;
+    ref.listen(gameActionsProvider, onGameAction);
+
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
@@ -246,6 +250,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                       DrawDots(dots, onLineRequested: onLineRequested),
                     ]))),
           ]),
+        Align(alignment: Alignment.bottomLeft, child: Text(lastAction)),
         Align(alignment: Alignment.bottomRight, child: Text(gameId)),
         if (winnerText.isNotEmpty)
           AlertDialog(
@@ -359,9 +364,20 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   onConnected(String gameId) {
+    configureBoard(
+        dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+
     debugPrint("gameId = $gameId");
     isConnected = true;
     this.gameId = gameId;
+
+    setState(() {});
+  }
+
+  onGameAction(List<String>? previous, List<String> next) {
+    lastAction = next.last;
+    debugPrint('lastAction=$lastAction');
+
     setState(() {});
   }
 }

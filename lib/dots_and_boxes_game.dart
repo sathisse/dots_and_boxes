@@ -54,7 +54,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late bool gameStarted;
 
   late bool isConnected = false;
-  late String gameId = "not connected";
+  late String gameId = "<not connected>";
 
   @override
   void initState() {
@@ -198,7 +198,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
       return Stack(children: [
-        if (!isConnected) GameConnection(onConnected: onConnected),
+        GameConnection(onConnected: onConnected),
         if (isConnected)
           Column(children: [
             Row(children: [

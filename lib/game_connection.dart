@@ -63,56 +63,59 @@ class _GameConnection extends ConsumerState<GameConnection> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Center(
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-            const Text('Create new game?'),
-            Checkbox(
-                value: createGame,
-                onChanged: (bool? value) {
-                  createGame = value ?? false;
-                  setState(() {
-                    if (createGame) {
-                      createGameId();
-                      subscribeToChannel(creator: true);
-                    } else {
-                      unsubscribeFromChannel();
-                      gameId = '';
+        child: Stack(children: [
+          if (!isConnected)
+            Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
+                const Text('Create new game?'),
+                Checkbox(
+                    value: createGame,
+                    onChanged: (bool? value) {
+                      createGame = value ?? false;
+                      setState(() {
+                        if (createGame) {
+                          createGameId();
+                          subscribeToChannel(creator: true);
+                        } else {
+                          unsubscribeFromChannel();
+                          gameId = '';
+                        }
+                      });
+                      setState(() {});
+                    }),
+              ]),
+              SizedBox(
+                width: 100.0,
+                child: TextFormField(
+                  controller: TextEditingController()..text = gameId,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    labelText: 'Game ID',
+                  ),
+                  enabled: !createGame,
+                  maxLength: 6,
+                  onChanged: (value) {
+                    if (value.length == gameIdLength) {
+                      gameId = value;
+                      subscribeToChannel();
+                      setState(() {});
                     }
-                  });
-                  setState(() {});
-                }),
-          ]),
-          SizedBox(
-            width: 100.0,
-            child: TextFormField(
-              controller: TextEditingController()..text = gameId,
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Game ID',
+                  },
+                  textAlign: TextAlign.center,
+                ),
               ),
-              enabled: !createGame,
-              maxLength: 6,
-              onChanged: (value) {
-                if (value.length == 6) {
-                  gameId = value;
-                  subscribeToChannel();
-                  setState(() {});
-                }
-              },
-              textAlign: TextAlign.center,
-            ),
-          ),
-          const SizedBox(height: 25.0),
-          Text(statusTxt),
-          const SizedBox(height: 25.0),
-          IconButton(
-            icon: const Icon(Icons.arrow_right_alt),
-            onPressed: isConnected ? _sendLineMsg : null,
-          ),
-          IconButton(
-            icon: const Icon(Icons.person_remove),
-            onPressed: isConnected ? _sendLeaveMsg : null,
-          ),
+              const SizedBox(height: 25.0),
+              Text(statusTxt),
+              const SizedBox(height: 25.0),
+              IconButton(
+                icon: const Icon(Icons.arrow_right_alt),
+                onPressed: isConnected ? _sendLineMsg : null,
+              ),
+              IconButton(
+                icon: const Icon(Icons.person_remove),
+                onPressed: isConnected ? _sendLeaveMsg : null,
+              ),
+            ]),
         ]),
       ),
     );
@@ -127,7 +130,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   void createGameId() async {
-    gameId = const Uuid().v4().substring(0, 6);
+    gameId = const Uuid().v4().substring(0, gameIdLength);
     debugPrint('Game ID: $gameId');
     numPlayers = 1;
   }

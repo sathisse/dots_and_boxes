@@ -123,6 +123,7 @@ class _GameConnection extends State<GameConnection> {
 
   void createGameId() async {
     gameId = const Uuid().v4().substring(0, 6);
+    debugPrint('Game ID: $gameId');
     numPlayers = 1;
   }
 
@@ -202,7 +203,7 @@ class _GameConnection extends State<GameConnection> {
     });
 
     isConnected = true;
-    widget.onConnected();
+    widget.onConnected(gameId);
     statusTxt = "Subscribed to '$channelName' as ${creator ? 'p1' : 'non-creator'}";
 
     if (creator) {

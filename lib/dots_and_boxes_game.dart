@@ -53,6 +53,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
   late bool gameStarted;
 
   late bool isConnected = false;
+  late String gameId = "not connected";
 
   @override
   void initState() {
@@ -243,6 +244,7 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
                       DrawDots(dots, onLineRequested: onLineRequested),
                     ]))),
           ]),
+        Align(alignment: Alignment.bottomRight, child: Text(gameId)),
         if (winnerText.isNotEmpty)
           AlertDialog(
             title: const Text('Game Over'),
@@ -354,8 +356,10 @@ class _DotsAndBoxesGame extends State<DotsAndBoxesGame> {
     setState(() {});
   }
 
-  onConnected() {
+  onConnected(String gameId) {
+    debugPrint("gameId = $gameId");
     isConnected = true;
+    this.gameId = gameId;
     setState(() {});
   }
 }

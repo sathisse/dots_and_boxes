@@ -1,5 +1,5 @@
-// import 'dart:convert';
 import 'dart:core';
+import 'dart:convert';
 
 import 'package:dots_and_boxes/game_connection.dart';
 import 'package:flutter/material.dart';
@@ -53,9 +53,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late bool showRestartConfirmation;
   late bool gameStarted;
 
+  late Who playerId = Who.nobody;
   late bool isConnected = false;
   late String gameId = "<not connected>";
-  late String lastAction = "";
+  late String lastActionTxt = "<not connected>";
 
   @override
   void initState() {
@@ -194,7 +195,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   @override
   Widget build(BuildContext context) {
-    // lastAction = ref.watch(gameActionsProvider).last;
     ref.listen(gameActionsProvider, onGameAction);
 
     return LayoutBuilder(builder: (context, constraints) {
@@ -250,7 +250,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                       DrawDots(dots, onLineRequested: onLineRequested),
                     ]))),
           ]),
-        Align(alignment: Alignment.bottomLeft, child: Text(lastAction)),
+        Align(alignment: Alignment.bottomLeft, child: Text(lastActionTxt)),
         Align(alignment: Alignment.bottomRight, child: Text(gameId)),
         if (winnerText.isNotEmpty)
           AlertDialog(
@@ -323,6 +323,8 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         } else if (!closedABox) {
           switchPlayer();
         }
+
+        ref.read(localLineProvider.notifier).state = line;
     }
 
     setState(() {});
@@ -364,19 +366,42 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   onConnected(String gameId) {
-    configureBoard(
-        dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+    // configureBoard(
+    //     dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
 
     debugPrint("gameId = $gameId");
     isConnected = true;
     this.gameId = gameId;
-
     setState(() {});
   }
 
-  onGameAction(List<String>? previous, List<String> next) {
-    lastAction = next.last;
-    debugPrint('lastAction=$lastAction');
+  onGameAction(List<dynamic>? previous, List<dynamic> next) {
+    var action = next.last;
+    debugPrint("next=$next; action=$action");
+
+    MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']));
+    debugPrint("mt = $msgType");
+
+    switch (msgType) {
+      case MsgType.join:
+        lastActionTxt = "<Requesting to join game>";
+        break;
+      case MsgType.added:
+        var newPlayerId =
+            Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
+        numberOfDots = json.decode(action['numberOfDots']);
+        // if (playId == )
+        lastActionTxt = "Connected as ${players[newPlayerId]?.name}";
+        break;
+      case MsgType.rejected:
+        break;
+      case MsgType.line:
+        var line = json.decode(action['line']);
+        debugPrint("Line = $line");
+        break;
+      case MsgType.leave:
+        break;
+    }
 
     setState(() {});
   }

@@ -19,7 +19,9 @@ enum MsgType {
 const gameIdLength = 3;
 
 final gameActionsProvider =
-    StateProvider<List<String>>((ref) => <String>["<no connected players>"]);
+    StateProvider<List<dynamic>>((ref) => <dynamic>["<no connected players>"]);
+
+final localLineProvider = StateProvider<Line>((ref) => Line((-1, -1), (-1, -1)));
 
 class GameConnection extends ConsumerStatefulWidget {
   final Function onConnected;
@@ -61,6 +63,8 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(localLineProvider, onLineRequested);
+
     return Scaffold(
       body: Center(
         child: Stack(children: [
@@ -93,7 +97,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
                     labelText: 'Game ID',
                   ),
                   enabled: !createGame,
-                  maxLength: 6,
+                  maxLength: gameIdLength,
                   onChanged: (value) {
                     if (value.length == gameIdLength) {
                       gameId = value;
@@ -106,15 +110,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
               ),
               const SizedBox(height: 25.0),
               Text(statusTxt),
-              const SizedBox(height: 25.0),
-              IconButton(
-                icon: const Icon(Icons.arrow_right_alt),
-                onPressed: isConnected ? _sendLineMsg : null,
-              ),
-              IconButton(
-                icon: const Icon(Icons.person_remove),
-                onPressed: isConnected ? _sendLeaveMsg : null,
-              ),
             ]),
         ]),
       ),
@@ -172,29 +167,20 @@ class _GameConnection extends ConsumerState<GameConnection> {
         case MsgType.join:
           var userId = message.uuid.value;
           debugPrint(">>>>> Join-request  message from user $userId");
+
           if (playerId == Who.p1) {
             _addPlayer(userId);
-          } else {
-            _sendRejectedMsg(userId);
+          } else if (userId == UserId(uuid).value) {
+            addMessageToState(message.payload);
           }
           break;
         case MsgType.added:
           String userId = json.decode(message.payload['userId']);
-          var newPlayerId =
-              Who.values.firstWhere((w) => w.name == json.decode(message.payload['playerId']));
-          int numberOfDots = json.decode(message.payload['numberOfDots']);
-          debugPrint(">>>>> Player-added message with $userId, $playerId, and $numberOfDots dots");
+          debugPrint(">>>>> Player-added message with $userId");
 
-          // ref.read(gameActionsProvider.notifier).state.add("anotherAction");
-          ref.read(gameActionsProvider.notifier).state = ref
-              .read(gameActionsProvider.notifier)
-              .state
-              .toList()
-            ..add("${players[newPlayerId]?.name} joined");
-
+          addMessageToState(message.payload);
           if (userId == UserId(uuid).value) {
             debugPrint("That's me! Let's configure the game...");
-            playerId = newPlayerId;
           } else {
             debugPrint("Someone else was added; there's nothing to do.");
           }
@@ -202,6 +188,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
         case MsgType.rejected:
           String userId = json.decode(message.payload['userId']);
           debugPrint(">>>>> Player-rejected message with $userId");
+
           if (userId == UserId(uuid).value) {
             debugPrint("That's me! Let's let the player know that that can't join the game...");
           } else {
@@ -211,6 +198,8 @@ class _GameConnection extends ConsumerState<GameConnection> {
         case MsgType.line:
           var line = json.decode(message.payload['line']);
           debugPrint(">>>>> Line-requested message with $line");
+
+          addMessageToState(message.payload);
           break;
         case MsgType.leave:
           debugPrint(">>>>> Leave-game message");
@@ -231,6 +220,12 @@ class _GameConnection extends ConsumerState<GameConnection> {
     setState(() {});
   }
 
+  addMessageToState(dynamic message) {
+    // Update the state with a player-added message:
+    ref.read(gameActionsProvider.notifier).state =
+        ref.read(gameActionsProvider.notifier).state.toList()..add(message);
+  }
+
   void _sendJoinMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.join.name)});
   }
@@ -249,11 +244,12 @@ class _GameConnection extends ConsumerState<GameConnection> {
         .publish({"msgType": json.encode(MsgType.rejected.name), "userId": json.encode(userId)});
   }
 
-  void _sendLineMsg() async {
-    var aLine = Line((0, 0), (1, 0), drawer: Who.p1);
-    await channel.publish({"msgType": json.encode(MsgType.line.name), "line": json.encode(aLine)});
+  void _sendLineMsg(Line line) async {
+    // var aLine = Line((0, 0), (1, 0), drawer: Who.p1);
+    await channel.publish({"msgType": json.encode(MsgType.line.name), "line": json.encode(line)});
   }
 
+  // ignore: unused_element
   void _sendLeaveMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.leave.name)});
   }
@@ -264,6 +260,11 @@ class _GameConnection extends ConsumerState<GameConnection> {
       _sendAddedMsg(userId, Who.values[numPlayers]);
     } else {
       debugPrint('Max players already joined!');
+      _sendRejectedMsg(userId);
     }
+  }
+
+  onLineRequested(Line? previous, Line next) {
+    _sendLineMsg(next);
   }
 }

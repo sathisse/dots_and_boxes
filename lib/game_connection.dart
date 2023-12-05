@@ -9,11 +9,13 @@ import 'dots_and_boxes_game.dart';
 import 'line.dart';
 
 enum MsgType {
-  join,
-  added,
-  rejected,
-  line,
-  leave;
+  join, // Both
+  added, // Comm only
+  addedMe, // Action only
+  addedOther, // Action only
+  rejected, // Both
+  line, // Both
+  leave, // Both
 }
 
 const gameIdLength = 3;
@@ -160,31 +162,38 @@ class _GameConnection extends ConsumerState<GameConnection> {
       } else {
         debugPrint('Received message "${message.payload}"');
       }
-
-      MsgType msgType =
-          MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']));
-      switch (msgType) {
+      switch (
+          MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
         case MsgType.join:
           var userId = message.uuid.value;
           debugPrint(">>>>> Join-request  message from user $userId");
 
           if (playerId == Who.p1) {
             _addPlayer(userId);
-          } else if (userId == UserId(uuid).value) {
-            addMessageToState(message.payload);
+          } else {
+            _appendJoinMsg(message.payload);
           }
           break;
+
         case MsgType.added:
           String userId = json.decode(message.payload['userId']);
-          debugPrint(">>>>> Player-added message with $userId");
+          var newPlayerId =
+              Who.values.firstWhere((w) => w.name == json.decode(message.payload['playerId']));
+          numberOfDots = json.decode(message.payload['numberOfDots']);
+          debugPrint(">>>>> Player-added message with $userId, $newPlayerId, $numberOfDots");
 
-          addMessageToState(message.payload);
           if (userId == UserId(uuid).value) {
             debugPrint("That's me! Let's configure the game...");
+            _appendAddedMeMsg(newPlayerId, numberOfDots);
           } else {
             debugPrint("Someone else was added; there's nothing to do.");
+            _appendAddedOtherMsg(newPlayerId);
           }
           break;
+        case MsgType.addedMe:
+        case MsgType.addedOther:
+        // Not used for communication with other player(s).
+
         case MsgType.rejected:
           String userId = json.decode(message.payload['userId']);
           debugPrint(">>>>> Player-rejected message with $userId");
@@ -195,12 +204,14 @@ class _GameConnection extends ConsumerState<GameConnection> {
             debugPrint("Someone else was rejected; there's nothing to do.");
           }
           break;
-        case MsgType.line:
-          var line = json.decode(message.payload['line']);
-          debugPrint(">>>>> Line-requested message with $line");
 
-          addMessageToState(message.payload);
+        case MsgType.line:
+          debugPrint("Line message received: ${message.payload}");
+          var line = jsonDecode(message.payload['line']);
+          debugPrint(">>>>> Line-requested message with $line");
+          _appendLineMsg(message.payload);
           break;
+
         case MsgType.leave:
           debugPrint(">>>>> Leave-game message");
           break;
@@ -226,6 +237,32 @@ class _GameConnection extends ConsumerState<GameConnection> {
         ref.read(gameActionsProvider.notifier).state.toList()..add(message);
   }
 
+  void _appendJoinMsg(dynamic message) {
+    addMessageToState(message);
+  }
+
+  void _appendAddedMeMsg(Who playerId, int numberOfDots) {
+    dynamic message = {
+      "msgType": json.encode(MsgType.addedMe.name),
+      "playerId": json.encode(playerId.name),
+      "numberOfDots": json.encode(numberOfDots)
+    };
+    addMessageToState(message);
+  }
+
+  void _appendAddedOtherMsg(Who playerId) {
+    dynamic message = {
+      "msgType": json.encode(MsgType.addedOther.name),
+      "playerId": json.encode(playerId.name)
+    };
+    addMessageToState(message);
+  }
+
+  void _appendLineMsg(dynamic message) {
+    // Just pass-through the message as-is:
+    addMessageToState(message);
+  }
+
   void _sendJoinMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.join.name)});
   }
@@ -245,11 +282,11 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   void _sendLineMsg(Line line) async {
-    // var aLine = Line((0, 0), (1, 0), drawer: Who.p1);
+    //var aLine = Line((0, 0), (1, 0), drawer: Who.p1);
     await channel.publish({"msgType": json.encode(MsgType.line.name), "line": json.encode(line)});
   }
 
-  // ignore: unused_element
+// ignore: unused_element
   void _sendLeaveMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.leave.name)});
   }

@@ -376,29 +376,39 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   onGameAction(List<dynamic>? previous, List<dynamic> next) {
-    var action = next.last;
+    final action = next.last;
     debugPrint("next=$next; action=$action");
 
-    MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']));
-    debugPrint("mt = $msgType");
-
-    switch (msgType) {
+    switch (MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']))) {
       case MsgType.join:
         lastActionTxt = "<Requesting to join game>";
         break;
+
       case MsgType.added:
-        var newPlayerId =
-            Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
-        numberOfDots = json.decode(action['numberOfDots']);
-        // if (playId == )
-        lastActionTxt = "Connected as ${players[newPlayerId]?.name}";
+        // Not used for actions.
         break;
+
+      case MsgType.addedMe:
+        playerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
+        numberOfDots = json.decode(action['numberOfDots']);
+        lastActionTxt = "Connected as ${players[playerId]?.name}";
+        // ToDo: Configure game
+        break;
+
+      case MsgType.addedOther:
+        var newPlayerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
+        lastActionTxt = "${players[newPlayerId]?.name} added";
+        break;
+
       case MsgType.rejected:
         break;
+
       case MsgType.line:
-        var line = json.decode(action['line']);
+        var line = Line.fromJson(json.decode(action['line']));
         debugPrint("Line = $line");
+        lastActionTxt = "${players[line.drawer]?.name} added a line";
         break;
+
       case MsgType.leave:
         break;
     }

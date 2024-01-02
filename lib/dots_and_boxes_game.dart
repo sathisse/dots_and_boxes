@@ -299,32 +299,42 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     }
   }
 
-  onLineRequested(Dot src, Dot dest) {
+  onLineRequested(Dot src, Dot dest, [drawer = Who.nobody]) {
+    debugPrint('onLineRequested with $src, $dest, and playerId=$playerId');
+    if (drawer == Who.nobody && currentPlayer != playerId) {
+      return;
+    }
+
     switch (lines.where((x) => x == Line(src.position, dest.position)).toList()) {
       case []:
         debugPrint("Line is not valid");
 
       case [Line line]:
-        line.drawer = currentPlayer;
         gameStarted = true;
-        var closedABox = false;
+        drawRequestedLine(line);
 
-        for (final box in boxes.where((box) => box.lines.containsValue(line))) {
-          if (box.isClosed()) {
-            box.closer = currentPlayer;
-            closedABox = true;
-            players[currentPlayer]?.score =
-                boxes.where((box) => box.closer == currentPlayer).length;
-          }
+        if (drawer == Who.nobody) {
+          ref.read(localLineProvider.notifier).state = line;
         }
+    }
+  }
 
-        if (boxes.where((box) => box.closer == Who.nobody).isEmpty) {
-          endGame();
-        } else if (!closedABox) {
-          switchPlayer();
-        }
+  drawRequestedLine(Line line) {
+    debugPrint('drawRequestedLine with $line and currentPlayer=$currentPlayer');
+    line.drawer = currentPlayer;
+    var closedABox = false;
+    for (final box in boxes.where((box) => box.lines.containsValue(line))) {
+      if (box.isClosed()) {
+        box.closer = currentPlayer;
+        closedABox = true;
+        players[currentPlayer]?.score = boxes.where((box) => box.closer == currentPlayer).length;
+      }
+    }
 
-        ref.read(localLineProvider.notifier).state = line;
+    if (boxes.where((box) => box.closer == Who.nobody).isEmpty) {
+      endGame();
+    } else if (!closedABox) {
+      switchPlayer();
     }
 
     setState(() {});
@@ -365,21 +375,22 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     setState(() {});
   }
 
-  onConnected(String gameId) {
-    // configureBoard(
-    //     dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
-
-    debugPrint("gameId = $gameId");
+  onConnected(String gameId, Who playerId) {
+    debugPrint("gameId set to $gameId; playerId set to $playerId");
     isConnected = true;
     this.gameId = gameId;
+    this.playerId = playerId;
     setState(() {});
   }
 
   onGameAction(List<dynamic>? previous, List<dynamic> next) {
-    final action = next.last;
+    var action = next.last;
     debugPrint("next=$next; action=$action");
 
-    switch (MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']))) {
+    MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']));
+    debugPrint("mt = $msgType");
+
+    switch (msgType) {
       case MsgType.join:
         lastActionTxt = "<Requesting to join game>";
         break;
@@ -391,22 +402,30 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       case MsgType.addedMe:
         playerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
         numberOfDots = json.decode(action['numberOfDots']);
-        lastActionTxt = "Connected as ${players[playerId]?.name}";
-        // ToDo: Configure game
+        lastActionTxt = "Joined game as ${players[playerId]?.name} with $numberOfDots";
+        configureBoard(
+            dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+        gameStarted = true;
         break;
 
       case MsgType.addedOther:
         var newPlayerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
         lastActionTxt = "${players[newPlayerId]?.name} added";
+        gameStarted = true;
         break;
 
       case MsgType.rejected:
+        lastActionTxt = "Join request rejected";
         break;
 
       case MsgType.line:
-        var line = Line.fromJson(json.decode(action['line']));
-        debugPrint("Line = $line");
-        lastActionTxt = "${players[line.drawer]?.name} added a line";
+        Line line = Line.fromJson(json.decode(action['line']));
+        if (line.drawer != playerId) {
+          debugPrint("Line = $line");
+          lastActionTxt = "${players[line.drawer]?.name} added a line";
+          onLineRequested(Dot(line.start), Dot(line.end), line.drawer);
+          // drawRequestedLine(line);
+        }
         break;
 
       case MsgType.leave:

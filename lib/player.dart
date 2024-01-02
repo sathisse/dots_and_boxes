@@ -9,7 +9,6 @@ class Player {
 
   @override
   String toString() {
-    // ToDo: This looks incomplete:
     return 'Player($color)';
   }
 }

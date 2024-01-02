@@ -10,12 +10,12 @@ import 'line.dart';
 
 enum MsgType {
   join, // Both
-  added, // Comm only
-  addedMe, // Action only
+  added, // comm only
+  addedMe, // action only
   addedOther, // Action only
-  rejected, // Both
+  rejected,
   line, // Both
-  leave, // Both
+  leave;
 }
 
 const gameIdLength = 3;
@@ -153,7 +153,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
     subscription = pubnub.subscribe(channels: {channelName});
     channel = pubnub.channel(channelName);
 
-    // ToDo: if retrying gameId, we dob;t seem to be subscribing to the new channel:
+    // ToDo: if retrying gameId, we don't seem to be subscribing to the new channel:
     // Sets up a listener for new messages:
     subscription.messages.forEach((message) {
       // debugPrint('x: ${message.originalMessage}');
@@ -162,19 +162,22 @@ class _GameConnection extends ConsumerState<GameConnection> {
       } else {
         debugPrint('Received message "${message.payload}"');
       }
-      switch (
-          MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
+
+      MsgType msgType =
+          MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']));
+      switch (msgType) {
         case MsgType.join:
           var userId = message.uuid.value;
-          debugPrint(">>>>> Join-request  message from user $userId");
+          debugPrint(">>>>> Join-request message from user $userId");
 
           if (playerId == Who.p1) {
             _addPlayer(userId);
-          } else {
-            _appendJoinMsg(message.payload);
+            isConnected = true;
+            widget.onConnected(gameId, playerId);
+          } else if (userId == UserId(uuid).value) {
+            _appendMessageToState(message.payload);
           }
           break;
-
         case MsgType.added:
           String userId = json.decode(message.payload['userId']);
           var newPlayerId =
@@ -185,14 +188,18 @@ class _GameConnection extends ConsumerState<GameConnection> {
           if (userId == UserId(uuid).value) {
             debugPrint("That's me! Let's configure the game...");
             _appendAddedMeMsg(newPlayerId, numberOfDots);
+            isConnected = true;
+            widget.onConnected(gameId, newPlayerId);
           } else {
             debugPrint("Someone else was added; there's nothing to do.");
             _appendAddedOtherMsg(newPlayerId);
           }
           break;
+
         case MsgType.addedMe:
         case MsgType.addedOther:
-        // Not used for communication with other player(s).
+          // Not used for communication with other player(s)
+          break;
 
         case MsgType.rejected:
           String userId = json.decode(message.payload['userId']);
@@ -200,16 +207,17 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
           if (userId == UserId(uuid).value) {
             debugPrint("That's me! Let's let the player know that that can't join the game...");
+            _appendMessageToState(message.payload);
           } else {
             debugPrint("Someone else was rejected; there's nothing to do.");
           }
           break;
 
         case MsgType.line:
-          debugPrint("Line message received: ${message.payload}");
-          var line = jsonDecode(message.payload['line']);
+          var line = json.decode(message.payload['line']);
           debugPrint(">>>>> Line-requested message with $line");
-          _appendLineMsg(message.payload);
+
+          _appendMessageToState(message.payload);
           break;
 
         case MsgType.leave:
@@ -218,8 +226,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
       }
     });
 
-    isConnected = true;
-    widget.onConnected(gameId);
+
     statusTxt = "Subscribed to '$channelName' as ${creator ? 'p1' : 'non-creator'}";
 
     if (creator) {
@@ -231,23 +238,19 @@ class _GameConnection extends ConsumerState<GameConnection> {
     setState(() {});
   }
 
-  addMessageToState(dynamic message) {
+  _appendMessageToState(dynamic message) {
     // Update the state with a player-added message:
     ref.read(gameActionsProvider.notifier).state =
         ref.read(gameActionsProvider.notifier).state.toList()..add(message);
   }
-
-  void _appendJoinMsg(dynamic message) {
-    addMessageToState(message);
-  }
-
+  
   void _appendAddedMeMsg(Who playerId, int numberOfDots) {
     dynamic message = {
       "msgType": json.encode(MsgType.addedMe.name),
       "playerId": json.encode(playerId.name),
       "numberOfDots": json.encode(numberOfDots)
     };
-    addMessageToState(message);
+    _appendMessageToState(message);
   }
 
   void _appendAddedOtherMsg(Who playerId) {
@@ -255,14 +258,9 @@ class _GameConnection extends ConsumerState<GameConnection> {
       "msgType": json.encode(MsgType.addedOther.name),
       "playerId": json.encode(playerId.name)
     };
-    addMessageToState(message);
+    _appendMessageToState(message);
   }
-
-  void _appendLineMsg(dynamic message) {
-    // Just pass-through the message as-is:
-    addMessageToState(message);
-  }
-
+  
   void _sendJoinMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.join.name)});
   }
@@ -272,7 +270,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
       "msgType": json.encode(MsgType.added.name),
       "userId": json.encode(userId),
       "playerId": json.encode(playerId.name),
-      "numberOfDots": json.encode(12)
+      "numberOfDots": json.encode(numberOfDots)
     });
   }
 
@@ -282,11 +280,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   void _sendLineMsg(Line line) async {
-    //var aLine = Line((0, 0), (1, 0), drawer: Who.p1);
     await channel.publish({"msgType": json.encode(MsgType.line.name), "line": json.encode(line)});
   }
 
-// ignore: unused_element
+  // ignore: unused_element
   void _sendLeaveMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.leave.name)});
   }
@@ -302,6 +299,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   onLineRequested(Line? previous, Line next) {
+    debugPrint("Received a line request: $next");
     _sendLineMsg(next);
   }
 }

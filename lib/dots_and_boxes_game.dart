@@ -251,6 +251,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                     ]))),
           ]),
         Align(alignment: Alignment.bottomLeft, child: Text(lastActionTxt)),
+        Align(alignment: Alignment.bottomCenter, child: Text('-- ${players[playerId]?.name} --')),
         Align(alignment: Alignment.bottomRight, child: Text(gameId)),
         if (winnerText.isNotEmpty)
           AlertDialog(

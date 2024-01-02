@@ -305,6 +305,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       return;
     }
 
+    // ToDo: need to also check if line has already been drawn?
     switch (lines.where((x) => x == Line(src.position, dest.position)).toList()) {
       case []:
         debugPrint("Line is not valid");
@@ -346,6 +347,8 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     } else {
       currentPlayer = Who.p1;
     }
+
+    lastActionTxt = "${players[currentPlayer]?.name}'s turn";
   }
 
   endGame() {
@@ -410,7 +413,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
       case MsgType.addedOther:
         var newPlayerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
-        lastActionTxt = "${players[newPlayerId]?.name} added";
+        lastActionTxt = "${players[newPlayerId]?.name} has joined game";
         gameStarted = true;
         break;
 

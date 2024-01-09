@@ -40,16 +40,12 @@ class DotsAndBoxesGame extends ConsumerStatefulWidget {
 }
 
 class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
-  final dimChoices = getDimensionChoices();
-
   late Set<Dot> dots; // These are always displayed.
   late Set<Line> lines; // These are only displayed if drawn.
   late Set<Box> boxes; // These are only displayed if closed.
 
-  late double sliderValue;
   late Who currentPlayer;
   late String winnerText;
-
   late bool showRestartConfirmation;
   late bool gameStarted;
 
@@ -62,10 +58,12 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   void initState() {
     super.initState();
 
-    debugPrint('Dimension choices are: $dimChoices');
-    sliderValue = 4;
-    configureBoard(
-        dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+    var dimChoices = getDimensionChoices();
+    var dims = dimChoices.entries
+        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[4])
+        .first;
+    // debugPrint("dims=$dims");
+    configureBoard(dims);
   }
 
   configureBoard(dims) {
@@ -120,26 +118,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         boxes.add(box);
       }
     }
-
-    /*
-    var dotsJson = json.encode(dots.toList().map((dot) => dot.toJson()).toList());
-    debugPrint('\n dots.json (${dotsJson.length} chars) = $dotsJson');
-    debugPrint('old dots={${dots.join(',  ')}}');
-    Set<Dot> newDots = (json.decode(dotsJson) as List).map((i) => Dot.fromJson(i)).toSet();
-    debugPrint('new dots={${newDots.join(',  ')}}');
-
-    var boxesJson = json.encode(boxes.toList().map((box) => box.toJson()).toList());
-    debugPrint('\n boxes.json (${boxesJson.length} chars) = $boxesJson');
-    debugPrint('old boxes={${boxes.join(',  ')} }');
-    Set<Box> newBoxes = (json.decode(boxesJson) as List).map((i) => Box.fromJson(i)).toSet();
-    debugPrint('new boxes={${newBoxes.join(',  ')}}');
-
-    var linesJson = json.encode(lines.toList().map((line) => line.toJson()).toList());
-    debugPrint('\n lines.json (${linesJson.length} chars) = $linesJson');
-    debugPrint('old lines={${lines.join(',  ')}}');
-    Set<Line> newLines = (json.decode(linesJson) as List).map((i) => Line.fromJson(i)).toSet();
-    debugPrint('new lines={${newLines.join(',  ')}}');
-    */
 
     resetGame();
   }
@@ -202,7 +180,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
       return Stack(children: [
-        GameConnection(onConnected: onConnected),
+        GameConnection(configureBoard: configureBoard, onConnected: onConnected),
         if (isConnected)
           Column(children: [
             Row(children: [
@@ -214,16 +192,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                   setState(() {});
                 },
               ),
-              Expanded(
-                  child: AnimatedOpacity(
-                      opacity: gameStarted ? 0.25 : 1,
-                      duration: const Duration(milliseconds: 500),
-                      child: Slider(
-                          value: sliderValue,
-                          max: dimChoices.length.toDouble() - 1,
-                          divisions: dimChoices.length - 2,
-                          label: "${dimChoices.keys.toList()[sliderValue.floor()]} dots",
-                          onChanged: onSliderChanged))),
               const SizedBox(width: 20),
               Column(children: [
                 for (final player in players.values.skip(1))
@@ -284,30 +252,15 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     });
   }
 
-  onSliderChanged(double value) {
-    if (gameStarted) return;
-    debugPrint("Slider tab set to ${value.round()}");
-
-    sliderValue = value;
-    setState(() {});
-
-    var dims = dimChoices.entries
-        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[value.floor()])
-        .first;
-    debugPrint("dims=$dims");
-    if (dims.key != numberOfDots) {
-      configureBoard(dims);
-    }
-  }
-
   onLineRequested(Dot src, Dot dest, [drawer = Who.nobody]) {
     debugPrint('onLineRequested with $src, $dest, and playerId=$playerId');
     if (drawer == Who.nobody && currentPlayer != playerId) {
       return;
     }
 
-    // ToDo: need to also check if line has already been drawn?
-    switch (lines.where((x) => x == Line(src.position, dest.position)).toList()) {
+    switch (lines
+        .where((x) => x == Line(src.position, dest.position) && x.drawer == Who.nobody)
+        .toList()) {
       case []:
         debugPrint("Line is not valid");
 
@@ -406,9 +359,11 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       case MsgType.addedMe:
         playerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
         numberOfDots = json.decode(action['numberOfDots']);
-        lastActionTxt = "Joined game as ${players[playerId]?.name} with $numberOfDots";
-        configureBoard(
-            dimChoices.entries.where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots).first);
+        lastActionTxt = "Joined game as ${players[playerId]?.name}";
+        configureBoard(getDimensionChoices()
+            .entries
+            .where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots)
+            .first);
         gameStarted = true;
         break;
 

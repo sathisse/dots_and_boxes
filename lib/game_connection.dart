@@ -6,6 +6,7 @@ import 'package:pubnub/pubnub.dart';
 import 'package:uuid/uuid.dart';
 
 import 'dots_and_boxes_game.dart';
+import 'game_size_slider.dart';
 import 'line.dart';
 
 enum MsgType {
@@ -26,9 +27,10 @@ final gameActionsProvider =
 final localLineProvider = StateProvider<Line>((ref) => Line((-1, -1), (-1, -1)));
 
 class GameConnection extends ConsumerStatefulWidget {
+  final void Function(MapEntry<int, (int, int)>) configureBoard;
   final Function onConnected;
 
-  const GameConnection({required this.onConnected, super.key});
+  const GameConnection({required this.configureBoard, required this.onConnected, super.key});
 
   @override
   ConsumerState<GameConnection> createState() => _GameConnection();
@@ -42,7 +44,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
   late bool createGame;
   late String gameId;
-  late String statusTxt;
   late int numPlayers;
   late bool isConnected;
 
@@ -54,7 +55,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
   void initState() {
     createGame = false;
     gameId = "";
-    statusTxt = "";
     numPlayers = 1;
     isConnected = false;
     playerId = Who.nobody;
@@ -111,7 +111,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
                 ),
               ),
               const SizedBox(height: 25.0),
-              Text(statusTxt),
+              AnimatedOpacity(
+                  opacity: createGame ? 1 : 0,
+                  duration: const Duration(milliseconds: 500),
+                  child: GameSizeSlider(configureBoard: widget.configureBoard))
             ]),
         ]),
       ),
@@ -142,7 +145,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
     }
 
     isConnected = false;
-    statusTxt = 'Unsubscribed from channel';
   }
 
   void subscribeToChannel({bool creator = false}) async {
@@ -226,9 +228,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
       }
     });
 
-
-    statusTxt = "Subscribed to '$channelName' as ${creator ? 'p1' : 'non-creator'}";
-
     if (creator) {
       playerId = Who.p1;
     } else {
@@ -243,7 +242,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
     ref.read(gameActionsProvider.notifier).state =
         ref.read(gameActionsProvider.notifier).state.toList()..add(message);
   }
-  
+
   void _appendAddedMeMsg(Who playerId, int numberOfDots) {
     dynamic message = {
       "msgType": json.encode(MsgType.addedMe.name),
@@ -260,7 +259,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
     };
     _appendMessageToState(message);
   }
-  
+
   void _sendJoinMsg() async {
     await channel.publish({"msgType": json.encode(MsgType.join.name)});
   }

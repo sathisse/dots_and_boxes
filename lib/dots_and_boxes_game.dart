@@ -87,10 +87,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         boxDots.clear();
         Box box = Box((x, y));
 
-        var nw = dots.where((dot) => dot.position == (x, y)).single;
-        var ne = dots.where((dot) => dot.position == (x + 1, y)).single;
-        var se = dots.where((dot) => dot.position == (x + 1, y + 1)).single;
-        var sw = dots.where((dot) => dot.position == (x, y + 1)).single;
+        final nw = dots.where((dot) => dot.position == (x, y)).single;
+        final ne = dots.where((dot) => dot.position == (x + 1, y)).single;
+        final se = dots.where((dot) => dot.position == (x + 1, y + 1)).single;
+        final sw = dots.where((dot) => dot.position == (x, y + 1)).single;
 
         boxDots.add(nw);
         boxDots.add(ne);
@@ -98,10 +98,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         boxDots.add(sw);
 
         // Create lines that surround the box:
-        var n = Line(nw.position, ne.position);
-        var e = Line(ne.position, se.position);
-        var s = Line(sw.position, se.position);
-        var w = Line(nw.position, sw.position);
+        final n = Line(nw.position, ne.position);
+        final e = Line(ne.position, se.position);
+        final s = Line(sw.position, se.position);
+        final w = Line(nw.position, sw.position);
 
         // Add them to global set of lines (ignoring rejection if any already exist):
         lines.add(n);
@@ -148,7 +148,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   // For testing, not actual game-play:
   Future<void> closeSomeBoxes({int percentage = 100}) async {
     var player = Who.p1;
-    var shuffled = lines.toList()..shuffle();
+    final shuffled = lines.toList()..shuffle();
     for (final line in shuffled.take((shuffled.length * percentage / 100).ceil())) {
       line.drawer = player;
       await Future.delayed(const Duration(milliseconds: 500));
@@ -341,7 +341,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   onGameAction(List<dynamic>? previous, List<dynamic> next) {
-    var action = next.last;
+    final action = next.last;
     debugPrint("next=$next; action=$action");
 
     MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']));

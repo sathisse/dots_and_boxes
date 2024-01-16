@@ -182,7 +182,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
           break;
         case MsgType.added:
           String userId = json.decode(message.payload['userId']);
-          var newPlayerId =
+          final newPlayerId =
               Who.values.firstWhere((w) => w.name == json.decode(message.payload['playerId']));
           numberOfDots = json.decode(message.payload['numberOfDots']);
           debugPrint(">>>>> Player-added message with $userId, $newPlayerId, $numberOfDots");
@@ -216,8 +216,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
           break;
 
         case MsgType.line:
-          var line = json.decode(message.payload['line']);
-          debugPrint(">>>>> Line-requested message with $line");
+          debugPrint(">>>>> Line-requested message with ${json.decode(message.payload['line'])}");
 
           _appendMessageToState(message.payload);
           break;

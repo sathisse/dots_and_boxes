@@ -184,31 +184,30 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         if (isConnected)
           Column(children: [
             Row(children: [
-              IconButton(
-                icon: const Icon(Icons.restart_alt, semanticLabel: 'restart'),
-                tooltip: 'Restart game',
-                onPressed: () {
-                  showRestartConfirmation = true;
-                  setState(() {});
-                },
-              ),
-              const SizedBox(width: 20),
-              Column(children: [
-                for (final player in players.values.skip(1))
-                  Row(mainAxisAlignment: MainAxisAlignment.end, children: [
-                    Text("${player.name}: ",
+              // ToDo: Change to handle more than 2 players: for (final int player = 1; numPlayers; player++)
+              for (final player in players.entries.skip(1))
+                Container(
+                  width: constraints.maxWidth / numPlayers,
+                  decoration: (currentPlayer == player.key
+                      ? const BoxDecoration(color: Colors.white10)
+                      : null),
+                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                    Text("${player.value.name}: ",
+                        // style: Theme.of(context).bannerTheme.contentTextStyle),
                         style: TextStyle(
                             fontFamily: "RobotoMono",
                             fontWeight: FontWeight.bold,
-                            color: player.color)),
+                            fontSize: 24,
+                            color: player.value.color)),
                     const SizedBox(height: 20),
-                    Text(('{:3d}'.format(player.score)),
+                    Text(('{:3d}'.format(player.value.score)),
                         style: TextStyle(
                             fontFamily: "RobotoMono",
                             fontWeight: FontWeight.bold,
-                            color: player.color)),
+                            fontSize: 24,
+                            color: player.value.color)),
                   ]),
-              ]),
+                ),
             ]),
             Expanded(
                 child: RotatedBox(

@@ -214,7 +214,8 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                     quarterTurns: quarterTurns,
                     child: Stack(children: [
                       DrawBoxes(boxes),
-                      DrawDots(dots, onLineRequested: onLineRequested),
+                      DrawDots(dots,
+                          isMyTurn: currentPlayer == playerId, onLineRequested: onLineRequested),
                     ]))),
           ]),
         Align(alignment: Alignment.bottomLeft, child: Text(lastActionTxt)),

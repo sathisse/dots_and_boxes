@@ -10,9 +10,10 @@ const paddingFactor = 0.25;
 
 class DrawDots extends StatelessWidget {
   final Set<Dot> dots;
+  final bool isMyTurn;
   final Function onLineRequested;
 
-  const DrawDots(this.dots, {required this.onLineRequested, super.key});
+  const DrawDots(this.dots, {required this.isMyTurn, required this.onLineRequested, super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -62,9 +63,11 @@ class DrawDots extends StatelessWidget {
                       // ));
                     },
                     onWillAccept: (data) {
-                      dotColor = Colors.grey;
+                      if (isMyTurn) {
+                        dotColor = Colors.grey;
+                      }
                       // debugPrint("in onWillAccept with dst $dot and src $data");
-                      return dot.position != data?.position;
+                      return isMyTurn && dot.position != data?.position;
                     },
                     onAccept: (data) {
                       // debugPrint("in onAccept with dst $dot and src $data");

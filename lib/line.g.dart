@@ -21,7 +21,8 @@ Line _$LineFromJson(Map<String, dynamic> json) => Line(
           $jsonValue[r'$2'] as int,
         ),
       ),
-    )..drawer = $enumDecode(_$WhoEnumMap, json['drawer']);
+      drawer: $enumDecodeNullable(_$WhoEnumMap, json['drawer']) ?? Who.nobody,
+    );
 
 Map<String, dynamic> _$LineToJson(Line instance) => <String, dynamic>{
       'start': {

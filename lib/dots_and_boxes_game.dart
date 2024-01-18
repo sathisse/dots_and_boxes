@@ -18,13 +18,15 @@ import 'draw_boxes.dart';
 enum Direction { n, e, s, w }
 
 enum Who { nobody, p1, p2 }
+// enum Who { nobody, p1, p2, p3 }
 
 typedef Coord = (int x, int y);
 
 final Map<Who, Player> players = {
   Who.nobody: Player("", Colors.transparent),
   Who.p1: Player("Player 1", Colors.orange),
-  Who.p2: Player("Player 2", Colors.blue)
+  Who.p2: Player("Player 2", Colors.blue),
+  // Who.p3: Player("Player 3", Colors.green),
 };
 
 int numberOfDots = 12;
@@ -45,6 +47,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late Set<Box> boxes; // These are only displayed if closed.
 
   late Who currentPlayer;
+  late int numPlayers;
   late String winnerText;
   late bool showRestartConfirmation;
   late bool gameStarted;
@@ -123,6 +126,8 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   resetGame() {
+    numPlayers = 2;
+    // numPlayers = 3;
     showRestartConfirmation = false;
     gameStarted = false;
 
@@ -296,11 +301,11 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   switchPlayer() {
-    if (currentPlayer == Who.p1) {
-      currentPlayer = Who.p2;
-    } else {
-      currentPlayer = Who.p1;
+    var nextPlayer = currentPlayer.index + 1;
+    if (nextPlayer >= Who.values.length) {
+      nextPlayer = 1;
     }
+    currentPlayer = Who.values[nextPlayer];
 
     lastActionTxt = "${players[currentPlayer]?.name}'s turn";
   }

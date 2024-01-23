@@ -114,7 +114,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
               AnimatedOpacity(
                   opacity: createGame ? 1 : 0,
                   duration: const Duration(milliseconds: 500),
-                  child: GameSizeSlider(configureBoard: widget.configureBoard))
+                  child: GameSizeSlider(configureBoard: widget.configureBoard, isEnabled: createGame))
             ]),
         ]),
       ),

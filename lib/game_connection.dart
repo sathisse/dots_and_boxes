@@ -81,7 +81,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
                       setState(() {
                         if (createGame) {
                           createGameId();
-                          subscribeToChannel(creator: true);
                         } else {
                           unsubscribeFromChannel();
                           gameId = '';
@@ -91,7 +90,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
                     }),
               ]),
               SizedBox(
-                width: 100.0,
+                width: 120.0,
                 child: TextFormField(
                   controller: TextEditingController()..text = gameId,
                   decoration: const InputDecoration(
@@ -111,10 +110,36 @@ class _GameConnection extends ConsumerState<GameConnection> {
                 ),
               ),
               const SizedBox(height: 25.0),
-              AnimatedOpacity(
-                  opacity: createGame ? 1 : 0,
-                  duration: const Duration(milliseconds: 500),
-                  child: GameSizeSlider(configureBoard: widget.configureBoard, isEnabled: createGame))
+              Column(
+                children: [
+                  DropdownMenu<int>(
+                    initialSelection: 2,
+                    requestFocusOnTap: false,
+                    enabled: createGame,
+                    label: const Text("Number of Players"),
+                    onSelected: (int? value) {
+                      setState(() {
+                        numPlayers = value!;
+                      });
+                    },
+                    dropdownMenuEntries: const [
+                      DropdownMenuEntry(value: 2, label: "2"),
+                      DropdownMenuEntry(value: 3, label: "3"),
+                      DropdownMenuEntry(value: 4, label: "4"),
+                      DropdownMenuEntry(value: 5, label: "5"),
+                    ],
+                  ),
+                  GameSizeSlider(configureBoard: widget.configureBoard, isEnabled: createGame),
+                  ElevatedButton(
+                      onPressed: !createGame
+                          ? null
+                          : () {
+                              subscribeToChannel(creator: true);
+                            },
+                      child: const Text("Create Game"))
+                ],
+                // )
+              )
             ]),
         ]),
       ),
@@ -148,6 +173,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   void subscribeToChannel({bool creator = false}) async {
+    debugPrint('Subscribing to channel');
     unsubscribeFromChannel();
 
     // ToDo: How to know if gameId is valid for non-creators?

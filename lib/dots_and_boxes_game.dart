@@ -17,7 +17,6 @@ import 'draw_boxes.dart';
 
 enum Direction { n, e, s, w }
 
-// enum Who { nobody, p1, p2 }
 enum Who { nobody, p1, p2, p3, p4, p5 }
 
 typedef Coord = (int x, int y);
@@ -50,6 +49,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   late Who currentPlayer;
   late int numPlayers = 1;
+  late int joinedPlayers;
   late String winnerText;
   late bool showRestartConfirmation;
   late bool gameStarted;
@@ -179,6 +179,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   @override
   Widget build(BuildContext context) {
     ref.listen(gameActionsProvider, onGameAction);
+
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
@@ -257,7 +258,9 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   onLineRequested(Dot src, Dot dest, [drawer = Who.nobody]) {
     debugPrint('onLineRequested with $src, $dest, and playerId=$playerId');
-    if (drawer == Who.nobody && currentPlayer != playerId) {
+    debugPrint(
+        '...and gameStarted = $gameStarted, drawer = $drawer, and currentPlayer = $currentPlayer');
+    if (!gameStarted || drawer == Who.nobody && currentPlayer != playerId) {
       return;
     }
 
@@ -300,7 +303,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   switchPlayer() {
     var nextPlayer = currentPlayer.index + 1;
-    if (nextPlayer >= Who.values.length) {
+    if (nextPlayer > numPlayers) {
       nextPlayer = 1;
     }
     currentPlayer = Who.values[nextPlayer];
@@ -335,11 +338,14 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     setState(() {});
   }
 
-  onConnected(String gameId, Who playerId) {
-    debugPrint("gameId set to $gameId; playerId set to $playerId");
+  onConnected(String gameId, int playerIndex, int numPlayers, int joinedPlayers) {
+    debugPrint(
+        "gameId set to $gameId, , playerIndex set to $playerIndex, numPlayers set to $numPlayers,  joinedPlayers set to $joinedPlayers");
     isConnected = true;
     this.gameId = gameId;
-    this.playerId = playerId;
+    this.numPlayers = numPlayers;
+    this.joinedPlayers = joinedPlayers;
+    playerId = Who.values[playerIndex];
     setState(() {});
   }
 
@@ -360,7 +366,9 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.addedMe:
-        playerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
+        joinedPlayers = json.decode(action['joinedPlayers']);
+        final int playerIndex = json.decode(action['playerIndex']);
+        playerId = Who.values[playerIndex];
         numberOfDots = json.decode(action['numberOfDots']);
         lastActionTxt = "Joined game as ${players[playerId]?.name}";
         configureBoard(getDimensionChoices()
@@ -371,13 +379,18 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.addedOther:
-        var newPlayerId = Who.values.firstWhere((w) => w.name == json.decode(action['playerId']));
+        joinedPlayers = json.decode(action['joinedPlayers']);
+        final int playerIndex = json.decode(action['playerIndex']);
+        final newPlayerId = Who.values[playerIndex];
         lastActionTxt = "${players[newPlayerId]?.name} has joined game";
-        gameStarted = true;
+        debugPrint('joinedPlayers = $joinedPlayers and numPlayers = $numPlayers');
+        if (joinedPlayers == numPlayers) {
+          gameStarted = true;
+        }
         break;
 
       case MsgType.rejected:
-        lastActionTxt = "Join request rejected";
+        lastActionTxt = "Sorry, the game is full.";
         break;
 
       case MsgType.line:

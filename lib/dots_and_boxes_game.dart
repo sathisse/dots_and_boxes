@@ -17,8 +17,8 @@ import 'draw_boxes.dart';
 
 enum Direction { n, e, s, w }
 
-enum Who { nobody, p1, p2 }
-// enum Who { nobody, p1, p2, p3 }
+// enum Who { nobody, p1, p2 }
+enum Who { nobody, p1, p2, p3, p4, p5 }
 
 typedef Coord = (int x, int y);
 
@@ -26,7 +26,9 @@ final Map<Who, Player> players = {
   Who.nobody: Player("", Colors.transparent),
   Who.p1: Player("Player 1", Colors.orange),
   Who.p2: Player("Player 2", Colors.blue),
-  // Who.p3: Player("Player 3", Colors.green),
+  Who.p3: Player("Player 3", Colors.red),
+  Who.p4: Player("Player 4", Colors.green),
+  Who.p5: Player("Player 5", Colors.yellow),
 };
 
 int numberOfDots = 12;
@@ -47,7 +49,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late Set<Box> boxes; // These are only displayed if closed.
 
   late Who currentPlayer;
-  late int numPlayers;
+  late int numPlayers = 1;
   late String winnerText;
   late bool showRestartConfirmation;
   late bool gameStarted;
@@ -126,8 +128,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   resetGame() {
-    numPlayers = 2;
-    // numPlayers = 3;
     showRestartConfirmation = false;
     gameStarted = false;
 
@@ -179,7 +179,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   @override
   Widget build(BuildContext context) {
     ref.listen(gameActionsProvider, onGameAction);
-
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
@@ -189,8 +188,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         if (isConnected)
           Column(children: [
             Row(children: [
-              // ToDo: Change to handle more than 2 players: for (final int player = 1; numPlayers; player++)
-              for (final player in players.entries.skip(1))
+              for (final player in players.entries.skip(1).take(numPlayers))
                 Container(
                   width: constraints.maxWidth / numPlayers,
                   decoration: (currentPlayer == player.key

@@ -46,4 +46,7 @@ const _$WhoEnumMap = {
   Who.nobody: 'nobody',
   Who.p1: 'p1',
   Who.p2: 'p2',
+  Who.p3: 'p3',
+  Who.p4: 'p4',
+  Who.p5: 'p5',
 };

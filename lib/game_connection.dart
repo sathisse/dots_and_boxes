@@ -22,10 +22,11 @@ enum MsgType {
 
 const gameIdLength = 3;
 
-final gameActionsProvider =
+final commsToGuiProvider =
     StateProvider<List<dynamic>>((ref) => <dynamic>["<no connected players>"]);
 
-final localLineProvider = StateProvider<Line>((ref) => Line((-1, -1), (-1, -1)));
+final guiToCommsProvider =
+    StateProvider<List<dynamic>>((ref) => <dynamic>[Line((-1, -1), (-1, -1))]);
 
 class GameConnection extends ConsumerStatefulWidget {
   final void Function(MapEntry<int, (int, int)>) configureBoard;
@@ -58,7 +59,9 @@ class _GameConnection extends ConsumerState<GameConnection> {
   void initState() {
     createGame = false;
     gameId = "";
+    // ToDo: Set to -1 instead to force error if trying to use prematurely?
     playerIndex = 0;
+    // ToDo: Do we need/want this line?
     numPlayers = 2;
     joinedPlayers = 1;
     isConnected = false;
@@ -69,7 +72,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(localLineProvider, onLineRequested);
+    ref.listen(guiToCommsProvider, handleMessageFromGui);
 
     return Scaffold(
       body: Center(
@@ -142,13 +145,16 @@ class _GameConnection extends ConsumerState<GameConnection> {
                             },
                       child: const Text("Create Game"))
                 ],
-                // )
               )
             ]),
         ]),
       ),
     );
   }
+
+  //
+  // Pubnub Methods
+  //
 
   void startPubnub() async {
     uuid = const Uuid().v4();
@@ -167,7 +173,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
     try {
       debugPrint('Unsubscribing from channel');
       await subscription.cancel();
-      debugPrint('Unsubscribed from channel');
     } catch (e) {
       debugPrint('remote unsubscribe call failed (probably due to no subscription active)');
     }
@@ -186,20 +191,20 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
     // ToDo: if retrying gameId, we don't seem to be subscribing to the new channel:
     // Sets up a listener for new messages:
-    subscription.messages.forEach((message) => handleMessage(message));
+    subscription.messages.forEach((message) => handleMessageFromComms(message));
 
     if (creator) {
       playerIndex = 1;
       isConnected = true;
       widget.onConnected(gameId, playerIndex, numPlayers, joinedPlayers);
     } else {
-      _sendJoinMsg();
+      _sendJoinMsgToComms();
     }
 
     setState(() {});
   }
 
-  void handleMessage(message) {
+  void handleMessageFromComms(message) {
     // debugPrint('x: ${message.originalMessage}');
     if (message.uuid.toString() == uuid) {
       debugPrint('Sent message ${message.payload}');
@@ -216,13 +221,13 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
         if (playerIndex == 1) {
           if (joinedPlayers < numPlayers) {
-            _sendAddedMsg(userId, ++joinedPlayers);
+            _sendAddedMsgToComms(userId, ++joinedPlayers);
           } else {
             debugPrint('The game is full!');
-            _sendRejectedMsg(userId);
+            _sendRejectedMsgToComms(userId);
           }
         } else if (userId == UserId(uuid).value) {
-          _appendMessageToState(message.payload);
+          _sendMessageToGui(message.payload);
         }
         break;
       case MsgType.added:
@@ -237,10 +242,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
           debugPrint("That's me! Let's configure the game...");
           isConnected = true;
           widget.onConnected(gameId, playerIndex, numPlayers, joinedPlayers);
-          _appendAddedMeMsg(playerIndex, numberOfDots);
+          _sendAddedMeMsgToGui(playerIndex, numberOfDots);
         } else {
           debugPrint("Someone else was added; there's nothing to do.");
-          _appendAddedOtherMsg(playerIndex);
+          _sendAddedOtherMsgToGui(playerIndex);
         }
         break;
 
@@ -255,7 +260,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
         if (userId == UserId(uuid).value) {
           debugPrint("That's me! Let's let the player know that that can't join the game...");
-          _appendMessageToState(message.payload);
+          _sendMessageToGui(message.payload);
         } else {
           debugPrint("Someone else was rejected; there's nothing to do.");
         }
@@ -264,45 +269,46 @@ class _GameConnection extends ConsumerState<GameConnection> {
       case MsgType.line:
         debugPrint(">>>>> Line-requested message with ${json.decode(message.payload['line'])}");
 
-        _appendMessageToState(message.payload);
+        _sendMessageToGui(message.payload);
         break;
 
       case MsgType.leave:
         debugPrint(">>>>> Leave-game message");
+        _sendMessageToGui(message.payload);
         break;
     }
   }
 
-  _appendMessageToState(dynamic message) {
+  void _sendMessageToGui(dynamic message) {
     // Update the state with a player-added message:
-    ref.read(gameActionsProvider.notifier).state =
-        ref.read(gameActionsProvider.notifier).state.toList()..add(message);
+    ref.read(commsToGuiProvider.notifier).state =
+        ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
   }
 
-  void _appendAddedMeMsg(int playerIndex, int numberOfDots) {
+  void _sendAddedMeMsgToGui(int playerIndex, int numberOfDots) {
     dynamic message = {
       "msgType": json.encode(MsgType.addedMe.name),
       "joinedPlayers": json.encode(joinedPlayers),
       "playerIndex": json.encode(playerIndex),
       "numberOfDots": json.encode(numberOfDots)
     };
-    _appendMessageToState(message);
+    _sendMessageToGui(message);
   }
 
-  void _appendAddedOtherMsg(int playerIndex) {
+  void _sendAddedOtherMsgToGui(int playerIndex) {
     dynamic message = {
       "msgType": json.encode(MsgType.addedOther.name),
       "joinedPlayers": json.encode(joinedPlayers),
       "playerIndex": json.encode(playerIndex)
     };
-    _appendMessageToState(message);
+    _sendMessageToGui(message);
   }
 
-  void _sendJoinMsg() async {
+  void _sendJoinMsgToComms() async {
     await channel.publish({"msgType": json.encode(MsgType.join.name)});
   }
 
-  void _sendAddedMsg(String userId, int playerIndex) async {
+  void _sendAddedMsgToComms(String userId, int playerIndex) async {
     await channel.publish({
       "msgType": json.encode(MsgType.added.name),
       "userId": json.encode(userId),
@@ -312,22 +318,39 @@ class _GameConnection extends ConsumerState<GameConnection> {
     });
   }
 
-  void _sendRejectedMsg(String userId) async {
+  void _sendRejectedMsgToComms(String userId) async {
     await channel
         .publish({"msgType": json.encode(MsgType.rejected.name), "userId": json.encode(userId)});
   }
 
-  void _sendLineMsg(Line line) async {
-    await channel.publish({"msgType": json.encode(MsgType.line.name), "line": json.encode(line)});
+  void _sendLineMsgToComms(dynamic message) async {
+    await channel.publish(message);
   }
 
-// ignore: unused_element
-  void _sendLeaveMsg() async {
-    await channel.publish({"msgType": json.encode(MsgType.leave.name)});
+  // ignore: unused_element
+  void _sendLeaveMsgToComms() async {
+    await channel.publish(
+        {"msgType": json.encode(MsgType.leave.name), "playerIndex": json.encode(playerIndex)});
   }
 
-  onLineRequested(Line? previous, Line next) {
-    debugPrint("Received a line request: $next");
-    _sendLineMsg(next);
+  handleMessageFromGui(List<dynamic>? previous, List<dynamic> next) {
+    debugPrint("Received a line request: ${next.last}");
+
+    final message = next.last;
+    MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']));
+    switch (msgType) {
+      case MsgType.join:
+      case MsgType.added:
+      case MsgType.addedMe:
+      case MsgType.addedOther:
+      case MsgType.rejected:
+        break;
+      case MsgType.line:
+        _sendLineMsgToComms(message);
+        break;
+      case MsgType.leave:
+        break;
+    }
+    _sendLineMsgToComms(next.last);
   }
 }

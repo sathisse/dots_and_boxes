@@ -178,7 +178,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen(gameActionsProvider, onGameAction);
+    ref.listen(commsToGuiProvider, onMsgFromComms);
 
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
@@ -275,7 +275,13 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         drawRequestedLine(line);
 
         if (drawer == Who.nobody) {
-          ref.read(localLineProvider.notifier).state = line;
+          dynamic message = {
+            "msgType": json.encode(MsgType.line.name),
+            "line": json.encode(line)
+          };
+
+          ref.read(guiToCommsProvider.notifier).state =
+              ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
         }
     }
   }
@@ -349,7 +355,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     setState(() {});
   }
 
-  onGameAction(List<dynamic>? previous, List<dynamic> next) {
+  onMsgFromComms(List<dynamic>? previous, List<dynamic> next) {
     final action = next.last;
     debugPrint("next=$next; action=$action");
 

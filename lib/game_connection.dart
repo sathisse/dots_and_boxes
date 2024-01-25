@@ -11,12 +11,12 @@ import 'game_size_slider.dart';
 import 'line.dart';
 
 enum MsgType {
-  join, // Both
-  added, // comm only
-  addedMe, // action only
-  addedOther, // Action only
+  join,
+  added,
+  addedMe,
+  addedOther,
   rejected,
-  line, // Both
+  line,
   leave;
 }
 
@@ -204,6 +204,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
     setState(() {});
   }
 
+  //
+  // Comms-to-Comms Message Methods
+  //
+
   void handleMessageFromComms(message) {
     // debugPrint('x: ${message.originalMessage}');
     if (message.uuid.toString() == uuid) {
@@ -251,7 +255,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
       case MsgType.addedMe:
       case MsgType.addedOther:
-        // Not used for communication with other player(s)
+        // Not used for CommsToComms messages.
         break;
 
       case MsgType.rejected:
@@ -277,31 +281,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
         _sendMessageToGui(message.payload);
         break;
     }
-  }
-
-  void _sendMessageToGui(dynamic message) {
-    // Update the state with a player-added message:
-    ref.read(commsToGuiProvider.notifier).state =
-        ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
-  }
-
-  void _sendAddedMeMsgToGui(int playerIndex, int numberOfDots) {
-    dynamic message = {
-      "msgType": json.encode(MsgType.addedMe.name),
-      "joinedPlayers": json.encode(joinedPlayers),
-      "playerIndex": json.encode(playerIndex),
-      "numberOfDots": json.encode(numberOfDots)
-    };
-    _sendMessageToGui(message);
-  }
-
-  void _sendAddedOtherMsgToGui(int playerIndex) {
-    dynamic message = {
-      "msgType": json.encode(MsgType.addedOther.name),
-      "joinedPlayers": json.encode(joinedPlayers),
-      "playerIndex": json.encode(playerIndex)
-    };
-    _sendMessageToGui(message);
   }
 
   void _sendJoinMsgToComms() async {
@@ -333,7 +312,11 @@ class _GameConnection extends ConsumerState<GameConnection> {
         {"msgType": json.encode(MsgType.leave.name), "playerIndex": json.encode(playerIndex)});
   }
 
-  handleMessageFromGui(List<dynamic>? previous, List<dynamic> next) {
+  //
+  // To/from GUI Message Methods
+  //
+
+  void handleMessageFromGui(List<dynamic>? previous, List<dynamic> next) {
     debugPrint("Received a line request: ${next.last}");
 
     final message = next.last;
@@ -344,13 +327,41 @@ class _GameConnection extends ConsumerState<GameConnection> {
       case MsgType.addedMe:
       case MsgType.addedOther:
       case MsgType.rejected:
+        // Not used for GuiToComms messages.
         break;
+
       case MsgType.line:
         _sendLineMsgToComms(message);
+
         break;
       case MsgType.leave:
         break;
     }
     _sendLineMsgToComms(next.last);
+  }
+
+  void _sendMessageToGui(dynamic message) {
+    // Send a state message to the GUI:
+    ref.read(commsToGuiProvider.notifier).state =
+        ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
+  }
+
+  void _sendAddedMeMsgToGui(int playerIndex, int numberOfDots) {
+    dynamic message = {
+      "msgType": json.encode(MsgType.addedMe.name),
+      "joinedPlayers": json.encode(joinedPlayers),
+      "playerIndex": json.encode(playerIndex),
+      "numberOfDots": json.encode(numberOfDots)
+    };
+    _sendMessageToGui(message);
+  }
+
+  void _sendAddedOtherMsgToGui(int playerIndex) {
+    dynamic message = {
+      "msgType": json.encode(MsgType.addedOther.name),
+      "joinedPlayers": json.encode(joinedPlayers),
+      "playerIndex": json.encode(playerIndex)
+    };
+    _sendMessageToGui(message);
   }
 }

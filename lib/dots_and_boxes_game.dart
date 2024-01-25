@@ -355,6 +355,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     setState(() {});
   }
 
+  //
+  // To/from GUI Message Methods
+  //
+
   onMsgFromComms(List<dynamic>? previous, List<dynamic> next) {
     final action = next.last;
     debugPrint("next=$next; action=$action");
@@ -368,7 +372,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.added:
-        // Not used for actions.
+        // Not used for CommsToGui messages.
         break;
 
       case MsgType.addedMe:

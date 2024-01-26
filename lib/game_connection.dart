@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pubnub/pubnub.dart';
 import 'package:uuid/uuid.dart';
 
-import 'dots_and_boxes_game.dart';
 import 'game_size_slider.dart';
 import 'line.dart';
 
@@ -29,11 +28,7 @@ final guiToCommsProvider =
     StateProvider<List<dynamic>>((ref) => <dynamic>[Line((-1, -1), (-1, -1))]);
 
 class GameConnection extends ConsumerStatefulWidget {
-  final void Function(MapEntry<int, (int, int)>) configureBoard;
-  final void Function(String gameId, int playerIndex, int numPlayers, int joinedPlayers)
-      onConnected;
-
-  const GameConnection({required this.configureBoard, required this.onConnected, super.key});
+  const GameConnection({super.key});
 
   @override
   ConsumerState<GameConnection> createState() => _GameConnection();
@@ -48,10 +43,11 @@ class _GameConnection extends ConsumerState<GameConnection> {
   late bool createGame;
   late String gameId;
   late int playerIndex;
+  late int numberOfDots;
   late int joinedPlayers;
   late int numPlayers;
-  late bool isConnected;
 
+  late bool isConnected;
   late Subscription subscription;
   late Channel channel;
 
@@ -59,9 +55,8 @@ class _GameConnection extends ConsumerState<GameConnection> {
   void initState() {
     createGame = false;
     gameId = "";
-    // ToDo: Set to -1 instead to force error if trying to use prematurely?
     playerIndex = 0;
-    // ToDo: Do we need/want this line?
+    numberOfDots = 12;
     numPlayers = 2;
     joinedPlayers = 1;
     isConnected = false;
@@ -136,7 +131,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
                       DropdownMenuEntry(value: 5, label: "5"),
                     ],
                   ),
-                  GameSizeSlider(configureBoard: widget.configureBoard, isEnabled: createGame),
+                  GameSizeSlider(setNumberOfDots: setNumberOfDots, isEnabled: createGame),
                   ElevatedButton(
                       onPressed: !createGame
                           ? null
@@ -150,6 +145,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
         ]),
       ),
     );
+  }
+
+  void setNumberOfDots(int numberOfDots) {
+    this.numberOfDots = numberOfDots;
   }
 
   //
@@ -196,7 +195,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
     if (creator) {
       playerIndex = 1;
       isConnected = true;
-      widget.onConnected(gameId, playerIndex, numPlayers, joinedPlayers);
+      _sendAddedMeMsgToGui(gameId, playerIndex, numberOfDots, numPlayers, joinedPlayers);
     } else {
       _sendJoinMsgToComms();
     }
@@ -244,8 +243,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
           debugPrint("That's me! Let's configure the game...");
           this.playerIndex = playerIndex;
           isConnected = true;
-          widget.onConnected(gameId, playerIndex, numPlayers, joinedPlayers);
-          _sendAddedMeMsgToGui(playerIndex, numberOfDots);
+          _sendAddedMeMsgToGui(gameId, playerIndex, numberOfDots, numPlayers, joinedPlayers);
         } else {
           debugPrint("Someone else was added; there's nothing to do.");
           _sendAddedOtherMsgToGui(playerIndex);
@@ -280,6 +278,8 @@ class _GameConnection extends ConsumerState<GameConnection> {
         _sendMessageToGui(message.payload);
         break;
     }
+
+    setState(() {});
   }
 
   void _sendJoinMsgToComms() async {
@@ -347,12 +347,15 @@ class _GameConnection extends ConsumerState<GameConnection> {
         ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
   }
 
-  void _sendAddedMeMsgToGui(int playerIndex, int numberOfDots) {
+  void _sendAddedMeMsgToGui(
+      String gameId, int playerIndex, int numberOfDots, int numPlayers, int joinedPlayers) {
     dynamic message = {
       "msgType": json.encode(MsgType.addedMe.name),
-      "joinedPlayers": json.encode(joinedPlayers),
+      "gameId": json.encode(gameId),
       "playerIndex": json.encode(playerIndex),
-      "numberOfDots": json.encode(numberOfDots)
+      "numberOfDots": json.encode(numberOfDots),
+      "numPlayers": json.encode(numPlayers),
+      "joinedPlayers": json.encode(joinedPlayers)
     };
     _sendMessageToGui(message);
   }

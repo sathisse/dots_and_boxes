@@ -1,13 +1,14 @@
 import 'package:dots_and_boxes/utils.dart';
 import 'package:flutter/material.dart';
 
-import 'dots_and_boxes_game.dart';
+// import 'dots_and_boxes_game.dart';
 
 class GameSizeSlider extends StatefulWidget {
-  final void Function(MapEntry<int, (int, int)>) configureBoard;
+  final void Function(int) setNumberOfDots;
   final bool isEnabled;
 
-  const GameSizeSlider({required this.configureBoard, required this.isEnabled, super.key});
+
+  const GameSizeSlider({required this.setNumberOfDots, required this.isEnabled, super.key});
 
   @override
   State<GameSizeSlider> createState() => _GameSizeSliderState();
@@ -16,6 +17,7 @@ class GameSizeSlider extends StatefulWidget {
 class _GameSizeSliderState extends State<GameSizeSlider> {
   final dimChoices = getDimensionChoices();
   late double sliderValue;
+  int numberOfDots = 12;
 
   @override
   void initState() {
@@ -43,7 +45,7 @@ class _GameSizeSliderState extends State<GameSizeSlider> {
         .first;
     debugPrint("dims=$dims");
     if (dims.key != numberOfDots) {
-      widget.configureBoard(dims);
+      widget.setNumberOfDots(dims.key);
     }
 
     setState(() {});

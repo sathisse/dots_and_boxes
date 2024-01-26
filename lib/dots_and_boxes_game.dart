@@ -186,7 +186,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
       return Stack(children: [
-        GameConnection(configureBoard: configureBoard, onConnected: onConnected),
+        const GameConnection(),
         if (isConnected)
           Column(children: [
             Row(children: [
@@ -367,18 +367,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     setState(() {});
   }
 
-  onConnected(String gameId, int playerIndex, int numPlayers, int joinedPlayers) {
-    debugPrint(
-        "gameId set to $gameId, , playerIndex set to $playerIndex, numPlayers set to $numPlayers,  joinedPlayers set to $joinedPlayers");
-    isConnected = true;
-    this.gameId = gameId;
-    this.playerIndex = playerIndex;
-    this.numPlayers = numPlayers;
-    this.joinedPlayers = joinedPlayers;
-    playerId = Who.values[playerIndex];
-    setState(() {});
-  }
-
   //
   // To/from GUI Message Methods
   //
@@ -398,15 +386,22 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
       case MsgType.addedMe:
         joinedPlayers = json.decode(message['joinedPlayers']);
+        gameId = json.decode(message['gameId']);
         playerIndex = json.decode(message['playerIndex']);
         playerId = Who.values[playerIndex];
         numberOfDots = json.decode(message['numberOfDots']);
+        numPlayers = json.decode(message['numPlayers']);
+        joinedPlayers = json.decode(message['joinedPlayers']);
+
         lastActionTxt = "Joined game as ${players[playerId]?.name}";
         configureBoard(getDimensionChoices()
             .entries
             .where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots)
             .first);
-        gameStarted = true;
+        isConnected = true;
+        if (joinedPlayers == numPlayers) {
+          gameStarted = true;
+        }
         break;
 
       case MsgType.addedOther:

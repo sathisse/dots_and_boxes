@@ -51,9 +51,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late int numPlayers = 1;
   late int joinedPlayers;
   late String winnerText;
-  late bool showRestartConfirmation;
+  late bool showLeaveGameConfirmation;
   late bool gameStarted;
 
+  late int playerIndex = 0;
   late Who playerId = Who.nobody;
   late bool isConnected = false;
   late String gameId = "<not connected>";
@@ -128,7 +129,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   resetGame() {
-    showRestartConfirmation = false;
+    showLeaveGameConfirmation = false;
     gameStarted = false;
 
     for (final line in lines) {
@@ -191,7 +192,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
             Row(children: [
               for (final player in players.entries.skip(1).take(numPlayers))
                 Container(
-                  width: constraints.maxWidth / numPlayers,
+                  width: (constraints.maxWidth - 50) / numPlayers,
                   decoration: (currentPlayer == player.key
                       ? const BoxDecoration(color: Colors.white10)
                       : null),
@@ -201,17 +202,26 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                         style: TextStyle(
                             fontFamily: "RobotoMono",
                             fontWeight: FontWeight.bold,
-                            fontSize: 24,
+                            fontSize: 20,
                             color: player.value.color)),
-                    const SizedBox(height: 20),
                     Text(('{:3d}'.format(player.value.score)),
                         style: TextStyle(
                             fontFamily: "RobotoMono",
                             fontWeight: FontWeight.bold,
-                            fontSize: 24,
+                            fontSize: 20,
                             color: player.value.color)),
+                    const SizedBox(width: 10),
                   ]),
                 ),
+              IconButton(
+                icon: const Icon(Icons.logout, semanticLabel: 'Leave game'),
+                tooltip: 'Leave game',
+                onPressed: () {
+                  setState(() {
+                    showLeaveGameConfirmation = true;
+                  });
+                },
+              ),
             ]),
             Expanded(
                 child: RotatedBox(
@@ -233,20 +243,20 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
               TextButton(onPressed: () => resetGame(), child: const Text('OK')),
             ],
           ),
-        if (showRestartConfirmation)
+        if (showLeaveGameConfirmation)
           AlertDialog(
-            title: const Text('Confirm game restart'),
-            content: const Text("Restart game now?"),
+            title: const Text('Confirm leave-game'),
+            content: const Text("Leave game now?"),
             actions: <Widget>[
               TextButton(
                   onPressed: () {
-                    showRestartConfirmation = false;
-                    endGame();
+                    showLeaveGameConfirmation = false;
+                    leaveGame();
                   },
-                  child: const Text('Yes, restart game')),
+                  child: const Text('Yes, leave game')),
               TextButton(
                   onPressed: () {
-                    showRestartConfirmation = false;
+                    showLeaveGameConfirmation = false;
                     setState(() {});
                   },
                   child: const Text('No, continue game')),
@@ -275,10 +285,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         drawRequestedLine(line);
 
         if (drawer == Who.nobody) {
-          dynamic message = {
-            "msgType": json.encode(MsgType.line.name),
-            "line": json.encode(line)
-          };
+          dynamic message = {"msgType": json.encode(MsgType.line.name), "line": json.encode(line)};
 
           ref.read(guiToCommsProvider.notifier).state =
               ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
@@ -308,13 +315,29 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   switchPlayer() {
-    var nextPlayer = currentPlayer.index + 1;
-    if (nextPlayer > numPlayers) {
-      nextPlayer = 1;
-    }
-    currentPlayer = Who.values[nextPlayer];
+    int nextPlayer = currentPlayer.index;
+    do {
+      if (++nextPlayer > numPlayers) {
+        nextPlayer = 1;
+      }
+      currentPlayer = Who.values[nextPlayer];
+    } while (players[currentPlayer]!.isGone);
 
     lastActionTxt = "${players[currentPlayer]?.name}'s turn";
+  }
+
+  leaveGame() {
+    dynamic message = {
+      "msgType": json.encode(MsgType.leave.name),
+      "playerIndex": json.encode(playerIndex)
+    };
+
+    ref.read(guiToCommsProvider.notifier).state =
+        ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
+
+    // ToDo: Return to lobby (either here or in GameConnection).
+    showLeaveGameConfirmation = false;
+    isConnected = false;
   }
 
   endGame() {
@@ -349,6 +372,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         "gameId set to $gameId, , playerIndex set to $playerIndex, numPlayers set to $numPlayers,  joinedPlayers set to $joinedPlayers");
     isConnected = true;
     this.gameId = gameId;
+    this.playerIndex = playerIndex;
     this.numPlayers = numPlayers;
     this.joinedPlayers = joinedPlayers;
     playerId = Who.values[playerIndex];
@@ -360,13 +384,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   //
 
   onMsgFromComms(List<dynamic>? previous, List<dynamic> next) {
-    final action = next.last;
-    debugPrint("next=$next; action=$action");
+    final message = next.last;
+    debugPrint('GUI: received a message from comms: "$message"');
 
-    MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(action['msgType']));
-    debugPrint("mt = $msgType");
-
-    switch (msgType) {
+    switch (MsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']))) {
       case MsgType.join:
         lastActionTxt = "<Requesting to join game>";
         break;
@@ -376,10 +397,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.addedMe:
-        joinedPlayers = json.decode(action['joinedPlayers']);
-        final int playerIndex = json.decode(action['playerIndex']);
+        joinedPlayers = json.decode(message['joinedPlayers']);
+        playerIndex = json.decode(message['playerIndex']);
         playerId = Who.values[playerIndex];
-        numberOfDots = json.decode(action['numberOfDots']);
+        numberOfDots = json.decode(message['numberOfDots']);
         lastActionTxt = "Joined game as ${players[playerId]?.name}";
         configureBoard(getDimensionChoices()
             .entries
@@ -389,10 +410,9 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.addedOther:
-        joinedPlayers = json.decode(action['joinedPlayers']);
-        final int playerIndex = json.decode(action['playerIndex']);
-        final newPlayerId = Who.values[playerIndex];
-        lastActionTxt = "${players[newPlayerId]?.name} has joined game";
+        joinedPlayers = json.decode(message['joinedPlayers']);
+        lastActionTxt =
+            "${players[Who.values[json.decode(message['playerIndex'])]]?.name} has joined game";
         debugPrint('joinedPlayers = $joinedPlayers and numPlayers = $numPlayers');
         if (joinedPlayers == numPlayers) {
           gameStarted = true;
@@ -404,7 +424,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.line:
-        Line line = Line.fromJson(json.decode(action['line']));
+        Line line = Line.fromJson(json.decode(message['line']));
         if (line.drawer != playerId) {
           debugPrint("Line = $line");
           lastActionTxt = "${players[line.drawer]?.name} added a line";
@@ -414,9 +434,19 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         break;
 
       case MsgType.leave:
-        break;
+        final playerIndex = json.decode(message['playerIndex']);
+        if (playerIndex == this.playerIndex) {
+          lastActionTxt = "You have left the game.";
+        } else {
+          final Player player = players[Who.values[playerIndex]]!;
+          player.isGone = true;
+          lastActionTxt = "${player.name} has left the game.";
+          if (players.entries.where((p) => p.value.isGone).length == numPlayers - 1) {
+            endGame();
+          }
+          break;
+        }
     }
-
     setState(() {});
   }
 }

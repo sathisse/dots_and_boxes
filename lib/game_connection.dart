@@ -209,16 +209,14 @@ class _GameConnection extends ConsumerState<GameConnection> {
   //
 
   void handleMessageFromComms(message) {
-    // debugPrint('x: ${message.originalMessage}');
     if (message.uuid.toString() == uuid) {
-      debugPrint('Sent message ${message.payload}');
+      debugPrint('Comms: Sent a message to comms: ${message.payload}');
+      // return;
     } else {
-      debugPrint('Received message "${message.payload}"');
+      debugPrint('Comms: Received a message from comms: "${message.payload}"');
     }
 
-    MsgType msgType =
-        MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']));
-    switch (msgType) {
+    switch (MsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
       case MsgType.join:
         var userId = message.uuid.value;
         debugPrint(">>>>> Join-request message from user $userId");
@@ -244,6 +242,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
         if (userId == UserId(uuid).value) {
           debugPrint("That's me! Let's configure the game...");
+          this.playerIndex = playerIndex;
           isConnected = true;
           widget.onConnected(gameId, playerIndex, numPlayers, joinedPlayers);
           _sendAddedMeMsgToGui(playerIndex, numberOfDots);
@@ -307,9 +306,8 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   // ignore: unused_element
-  void _sendLeaveMsgToComms() async {
-    await channel.publish(
-        {"msgType": json.encode(MsgType.leave.name), "playerIndex": json.encode(playerIndex)});
+  void _sendLeaveMsgToComms(dynamic message) async {
+    await channel.publish(message);
   }
 
   //
@@ -317,7 +315,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   //
 
   void handleMessageFromGui(List<dynamic>? previous, List<dynamic> next) {
-    debugPrint("Received a line request: ${next.last}");
+    debugPrint("Received a message from GUI: ${next.last}");
 
     final message = next.last;
     MsgType msgType = MsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']));
@@ -335,6 +333,9 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
         break;
       case MsgType.leave:
+        _sendMessageToGui(message);
+        gameId = "";
+        isConnected = false;
         break;
     }
     _sendLineMsgToComms(next.last);

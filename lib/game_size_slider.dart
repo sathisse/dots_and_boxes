@@ -20,7 +20,7 @@ class _GameSizeSliderState extends State<GameSizeSlider> {
   @override
   void initState() {
     super.initState();
-    debugPrint('Dimension choices are: $dimChoices');
+    // debugPrint('Dimension choices are: $dimChoices');
     sliderValue = 4;
   }
 

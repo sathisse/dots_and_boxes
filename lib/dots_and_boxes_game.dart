@@ -285,7 +285,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         drawRequestedLine(line);
 
         if (drawer == Who.nobody) {
-          dynamic message = {"msgType": json.encode(MsgType.line.name), "line": json.encode(line)};
+          dynamic message = {"msgType": json.encode(GameMsgType.line.name), "line": json.encode(line)};
 
           ref.read(guiToCommsProvider.notifier).state =
               ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
@@ -328,7 +328,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   leaveGame() {
     dynamic message = {
-      "msgType": json.encode(MsgType.leave.name),
+      "msgType": json.encode(GameMsgType.leave.name),
       "playerIndex": json.encode(playerIndex)
     };
 
@@ -375,16 +375,16 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     final message = next.last;
     debugPrint('GUI: received a message from comms: "$message"');
 
-    switch (MsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']))) {
-      case MsgType.join:
+    switch (GameMsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']))) {
+      case GameMsgType.join:
         lastActionTxt = "<Requesting to join game>";
         break;
 
-      case MsgType.added:
+      case GameMsgType.added:
         // Not used for CommsToGui messages.
         break;
 
-      case MsgType.addedMe:
+      case GameMsgType.addedMe:
         joinedPlayers = json.decode(message['joinedPlayers']);
         gameId = json.decode(message['gameId']);
         playerIndex = json.decode(message['playerIndex']);
@@ -404,7 +404,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         }
         break;
 
-      case MsgType.addedOther:
+      case GameMsgType.addedOther:
         joinedPlayers = json.decode(message['joinedPlayers']);
         lastActionTxt =
             "${players[Who.values[json.decode(message['playerIndex'])]]?.name} has joined game";
@@ -414,11 +414,11 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         }
         break;
 
-      case MsgType.rejected:
+      case GameMsgType.rejected:
         lastActionTxt = "Sorry, the game is full.";
         break;
 
-      case MsgType.line:
+      case GameMsgType.line:
         Line line = Line.fromJson(json.decode(message['line']));
         if (line.drawer != playerId) {
           debugPrint("Line = $line");
@@ -428,7 +428,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         }
         break;
 
-      case MsgType.leave:
+      case GameMsgType.leave:
         final playerIndex = json.decode(message['playerIndex']);
         if (playerIndex == this.playerIndex) {
           lastActionTxt = "You have left the game.";

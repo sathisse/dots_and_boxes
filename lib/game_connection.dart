@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pubnub/pubnub.dart';
 import 'package:uuid/uuid.dart';
 
-import 'package:dots_and_boxes/pubnub.dart';
 import 'game_size_slider.dart';
 import 'line.dart';
 
@@ -153,7 +152,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   }
 
   //
-  // Pubnub Methods
+  // PubNub Methods
   //
 
   void startPubnub() async {
@@ -210,8 +209,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
   void handleMessageFromComms(message) {
     if (message.uuid.toString() == uuid) {
-      debugPrint('Comms: Sent a message to comms: ${message.payload}');
-      // return;
+      debugPrint('Comms: Sent a message to comms: "${message.payload}"');
     } else {
       debugPrint('Comms: Received a message from comms: "${message.payload}"');
     }
@@ -284,6 +282,10 @@ class _GameConnection extends ConsumerState<GameConnection> {
     setState(() {});
   }
 
+  void _sendMessageToComms(dynamic message) async {
+    await channel.publish(message);
+  }
+
   void _sendJoinMsgToComms() async {
     await channel.publish({"msgType": json.encode(GameMsgType.join.name)});
   }
@@ -301,15 +303,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
   void _sendRejectedMsgToComms(String userId) async {
     await channel.publish(
         {"msgType": json.encode(GameMsgType.rejected.name), "userId": json.encode(userId)});
-  }
-
-  void _sendLineMsgToComms(dynamic message) async {
-    await channel.publish(message);
-  }
-
-  // ignore: unused_element
-  void _sendLeaveMsgToComms(dynamic message) async {
-    await channel.publish(message);
   }
 
   //
@@ -332,20 +325,20 @@ class _GameConnection extends ConsumerState<GameConnection> {
         break;
 
       case GameMsgType.line:
-        _sendLineMsgToComms(message);
-
+        _sendMessageToComms(message);
         break;
+
       case GameMsgType.leave:
-        _sendMessageToGui(message);
+        _sendMessageToComms(message);
         gameId = "";
         isConnected = false;
+        unsubscribeFromGameChannel();
+        setState(() {});
         break;
     }
-    _sendLineMsgToComms(next.last);
   }
 
   void _sendMessageToGui(dynamic message) {
-    // Send a state message to the GUI:
     ref.read(commsToGuiProvider.notifier).state =
         ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
   }

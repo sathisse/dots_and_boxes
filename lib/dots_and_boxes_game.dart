@@ -252,6 +252,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                   onPressed: () {
                     showLeaveGameConfirmation = false;
                     leaveGame();
+                    setState(() {});
                   },
                   child: const Text('Yes, leave game')),
               TextButton(
@@ -285,7 +286,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         drawRequestedLine(line);
 
         if (drawer == Who.nobody) {
-          dynamic message = {"msgType": json.encode(GameMsgType.line.name), "line": json.encode(line)};
+          dynamic message = {
+            "msgType": json.encode(GameMsgType.line.name),
+            "line": json.encode(line)
+          };
 
           ref.read(guiToCommsProvider.notifier).state =
               ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
@@ -326,7 +330,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     lastActionTxt = "${players[currentPlayer]?.name}'s turn";
   }
 
-  leaveGame() {
+  void leaveGame() {
     dynamic message = {
       "msgType": json.encode(GameMsgType.leave.name),
       "playerIndex": json.encode(playerIndex)
@@ -373,7 +377,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   onMsgFromComms(List<dynamic>? previous, List<dynamic> next) {
     final message = next.last;
-    debugPrint('GUI: received a message from comms: "$message"');
+    debugPrint('GUI: received a message from Comms: "$message"');
 
     switch (GameMsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']))) {
       case GameMsgType.join:
@@ -392,7 +396,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         numberOfDots = json.decode(message['numberOfDots']);
         numPlayers = json.decode(message['numPlayers']);
         joinedPlayers = json.decode(message['joinedPlayers']);
-
         lastActionTxt = "Joined game as ${players[playerId]?.name}";
         configureBoard(getDimensionChoices()
             .entries
@@ -424,24 +427,25 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
           debugPrint("Line = $line");
           lastActionTxt = "${players[line.drawer]?.name} added a line";
           onLineRequested(Dot(line.start), Dot(line.end), line.drawer);
-          // drawRequestedLine(line);
         }
         break;
 
       case GameMsgType.leave:
-        final playerIndex = json.decode(message['playerIndex']);
-        if (playerIndex == this.playerIndex) {
+        final leavingPlayerIndex = json.decode(message['playerIndex']);
+        debugPrint('');
+        if (leavingPlayerIndex == playerIndex) {
           lastActionTxt = "You have left the game.";
         } else {
-          final Player player = players[Who.values[playerIndex]]!;
-          player.isGone = true;
-          lastActionTxt = "${player.name} has left the game.";
+          final Player leavingPlayer = players[Who.values[leavingPlayerIndex]]!;
+          leavingPlayer.isGone = true;
+          lastActionTxt = "${leavingPlayer.name} has left the game.";
           if (players.entries.where((p) => p.value.isGone).length == numPlayers - 1) {
             endGame();
           }
-          break;
         }
+        break;
     }
+
     setState(() {});
   }
 }

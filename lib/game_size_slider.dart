@@ -7,7 +7,6 @@ class GameSizeSlider extends StatefulWidget {
   final void Function(int) setNumberOfDots;
   final bool isEnabled;
 
-
   const GameSizeSlider({required this.setNumberOfDots, required this.isEnabled, super.key});
 
   @override

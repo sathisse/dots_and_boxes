@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
-import 'package:uuid/uuid.dart';
+import 'package:scroll_to_index/scroll_to_index.dart';
 
 import 'game_info.dart';
 
 const gameIdLength = 3;
+
+final lobbyProvider = StateProvider<List<dynamic>>((ref) => <dynamic>[]);
 
 class Lobby extends ConsumerStatefulWidget {
   const Lobby({super.key});
@@ -17,11 +19,17 @@ class Lobby extends ConsumerStatefulWidget {
 class _Lobby extends ConsumerState<Lobby> {
   _Lobby();
 
+  late AutoScrollController scrollController;
   late List<GameInfo> gameList;
+  late int selectedGame;
 
   @override
   void initState() {
     super.initState();
+
+    scrollController = AutoScrollController(
+        viewportBoundaryGetter: () => Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
+        axis: Axis.vertical);
 
     gameList = <GameInfo>[
       GameInfo(gameId: '001', numDots: 12, numPlayers: 2)..setNumJoined(1),
@@ -42,6 +50,8 @@ class _Lobby extends ConsumerState<Lobby> {
       GameInfo(gameId: '016', numDots: 36, numPlayers: 2),
     ];
     gameList.sort();
+
+    selectedGame = -1;
   }
 
   @override
@@ -49,7 +59,7 @@ class _Lobby extends ConsumerState<Lobby> {
     return Scaffold(
       body: Column(children: [
         const Row(children: [
-          SizedBox(width:40),
+          SizedBox(width: 40),
           if (kDebugMode)
             Expanded(
                 flex: 10,
@@ -75,59 +85,68 @@ class _Lobby extends ConsumerState<Lobby> {
         const SizedBox(height: 10),
         Expanded(
             child: ListView(
+                scrollDirection: Axis.vertical,
+                controller: scrollController,
                 children: gameList.asMap().entries.map<Widget>((item) {
-          return Padding(
-              padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
-              child: GestureDetector(
-                onTap: () {
-                  debugPrint("Game ${item.value.gameId} pressed");
-                },
-                child: Container(
-                  decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white10),
-                      borderRadius: const BorderRadius.all(Radius.circular(10)),
-                      color: Colors.black.withAlpha(25)),
-                  child: Row(children: [
-                    IconButton(
-                        onPressed: () {
-                          // Start/join game
-                          debugPrint(
-                              'Joining game ${item.value.gameId}, with ${item.value.numDots} dots and ${item.value.numPlayers} players');
-                        },
-                        icon: const Icon(Icons.play_circle_outline)),
-                    if (kDebugMode)
-                    Expanded(
-                        flex: 10,
-                        child: Align(alignment: Alignment.center, child: Text(item.value.gameId))),
-                    Expanded(
-                        flex: 33,
-                        child: Align(
-                            alignment: Alignment.center,
-                            child: Text(item.value.numDots.toString()))),
-                    Expanded(
-                        flex: 33,
-                        child: Align(
-                            alignment: Alignment.center,
-                            child: Text('${item.value.numJoined} of ${item.value.numPlayers}'))),
-                    Expanded(
-                        flex: 33,
-                        child: Align(
-                            alignment: Alignment.center, child: Text(item.value.status.label))),
-                  ]),
-                ),
-              ));
-        }).toList())),
+                  return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
+                      child: getRow(item.key, item.value));
+                }).toList())),
       ]),
     );
   }
 
-  void createNewGame(int numDots, int numPlayers) {
-    final gameId = const Uuid().v4().substring(0, gameIdLength);
-    setState(() {
-      gameList.add(GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
-      gameList.sort();
-    });
+  Widget getRow(int index, GameInfo item) {
+    return AutoScrollTag(
+      key: ValueKey(index),
+      controller: scrollController,
+      index: index,
+      highlightColor: Colors.white.withOpacity(0.1),
+      child: GestureDetector(
+        onTap: () {
+          debugPrint("Game ${item.gameId} pressed");
+          scrollToItem(item.gameId);
+        },
+        child: Container(
+          decoration: BoxDecoration(
+              border: Border.all(color: index != selectedGame ? Colors.white10 : Colors.white60),
+              borderRadius: const BorderRadius.all(Radius.circular(10)),
+              color: Colors.black.withAlpha(25)),
+          child: Row(children: [
+            IconButton(
+                onPressed: () {
+                  scrollToItem(item.gameId);
+                  // Start/join game
+                  debugPrint(
+                      'Joining game ${item.gameId}, with ${item.numDots} dots and ${item.numPlayers} players');
+                },
+                icon: const Icon(Icons.play_circle_outline)),
+            // if (kDebugMode)
+            Expanded(flex: 10, child: Align(alignment: Alignment.center, child: Text(item.gameId))),
+            Expanded(
+                flex: 33,
+                child: Align(alignment: Alignment.center, child: Text(item.numDots.toString()))),
+            Expanded(
+                flex: 33,
+                child: Align(
+                    alignment: Alignment.center,
+                    child: Text('${item.numJoined} of ${item.numPlayers}'))),
+            Expanded(
+                flex: 33,
+                child: Align(alignment: Alignment.center, child: Text(item.status.label))),
+          ]),
+        ),
+      ),
+    );
+  }
 
-    debugPrint('Created new game with $numDots dots and $numPlayers players.');
+  void scrollToItem(String gameId) async {
+    final index = gameList.indexWhere((item) => item.gameId == gameId);
+    setState(() {
+      selectedGame = index;
+    });
+    debugPrint('scroll index is $index');
+    await scrollController.scrollToIndex(index, preferPosition: AutoScrollPosition.begin);
+    await scrollController.highlight(index);
   }
 }

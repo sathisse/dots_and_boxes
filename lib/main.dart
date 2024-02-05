@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// ignore: unused_import
 import 'dots_and_boxes_game.dart';
+// ignore: unused_import
+import 'lobby.dart';
 
 void main() {
   runApp(const ProviderScope(child: MyApp()));
@@ -30,7 +33,8 @@ class MyApp extends StatelessWidget {
         body: Center(
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: windowMargin, vertical: windowMargin),
-              child: const DotsAndBoxesGame()),
+              // child: const DotsAndBoxesGame()),
+              child: const Lobby()),
         ),
       ),
     );

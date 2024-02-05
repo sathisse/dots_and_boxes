@@ -214,7 +214,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
                   ]),
                 ),
               IconButton(
-                icon: const Icon(Icons.logout, semanticLabel: 'Leave game'),
+                icon: const Icon(Icons.stop_circle_outlined, semanticLabel: 'Leave game'),
                 tooltip: 'Leave game',
                 onPressed: () {
                   setState(() {

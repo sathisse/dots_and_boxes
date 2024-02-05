@@ -363,9 +363,15 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       FlameAudio.play("aw.wav");
       winnerText = "The game ended in a tie.";
     } else {
-      FlameAudio.play("yay.mp3");
-      winnerText = "$winner wins with $hiScore boxes closed!";
+      if (players[playerId]?.score == hiScore) {
+        FlameAudio.play("yay.mp3");
+        winnerText = "You win with $hiScore boxes closed!";
+      } else {
+        FlameAudio.play("no.wav");
+        winnerText = "$winner wins with $hiScore boxes closed!";
+      }
     }
+
     debugPrint(winnerText);
 
     setState(() {});

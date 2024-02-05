@@ -49,6 +49,7 @@ class _Lobby extends ConsumerState<Lobby> {
     return Scaffold(
       body: Column(children: [
         const Row(children: [
+          SizedBox(width:40),
           if (kDebugMode)
             Expanded(
                 flex: 10,
@@ -87,11 +88,17 @@ class _Lobby extends ConsumerState<Lobby> {
                       borderRadius: const BorderRadius.all(Radius.circular(10)),
                       color: Colors.black.withAlpha(25)),
                   child: Row(children: [
+                    IconButton(
+                        onPressed: () {
+                          // Start/join game
+                          debugPrint(
+                              'Joining game ${item.value.gameId}, with ${item.value.numDots} dots and ${item.value.numPlayers} players');
+                        },
+                        icon: const Icon(Icons.play_circle_outline)),
                     if (kDebugMode)
-                      Expanded(
-                          flex: 10,
-                          child:
-                              Align(alignment: Alignment.center, child: Text(item.value.gameId))),
+                    Expanded(
+                        flex: 10,
+                        child: Align(alignment: Alignment.center, child: Text(item.value.gameId))),
                     Expanded(
                         flex: 33,
                         child: Align(

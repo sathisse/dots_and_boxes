@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+import 'package:uuid/uuid.dart';
 
 import 'game_info.dart';
+import 'create_new_game_dialog.dart';
 
 const gameIdLength = 3;
 
@@ -92,6 +94,17 @@ class _Lobby extends ConsumerState<Lobby> {
                       padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
                       child: getRow(item.key, item.value));
                 }).toList())),
+        ElevatedButton(
+          onPressed: () {
+            setState(() {
+              Navigator.of(context).push(CreateNewGameDialog<void>(createNewGame: createNewGame));
+            });
+          },
+          child: const Column(children: [
+            Icon(Icons.add_circle_outline, semanticLabel: 'Create game'),
+            Text("Create new game")
+          ]),
+        ),
       ]),
     );
   }
@@ -148,5 +161,18 @@ class _Lobby extends ConsumerState<Lobby> {
     debugPrint('scroll index is $index');
     await scrollController.scrollToIndex(index, preferPosition: AutoScrollPosition.begin);
     await scrollController.highlight(index);
+  }
+
+  void createNewGame(int numDots, int numPlayers) {
+    final gameId = const Uuid().v4().substring(0, gameIdLength);
+    setState(() {
+      gameList.add(GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
+      gameList.sort();
+      scrollToItem(gameId);
+    });
+
+    debugPrint('Created new game with $numDots dots and $numPlayers players.');
+
+    //ToDo: Automatically start/join newly created game?
   }
 }

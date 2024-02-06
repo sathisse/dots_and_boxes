@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pubnub/pubnub.dart';
 import 'package:uuid/uuid.dart';
 
+import 'main.dart';
 import 'game_size_slider.dart';
 import 'line.dart';
 
@@ -37,9 +38,6 @@ class GameConnection extends ConsumerStatefulWidget {
 class _GameConnection extends ConsumerState<GameConnection> {
   _GameConnection();
 
-  late final String uuid;
-  late final PubNub pubnub;
-
   late bool createGame;
   late String gameId;
   late int playerIndex;
@@ -61,7 +59,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
     joinedPlayers = 1;
     isConnected = false;
 
-    startPubnub();
     super.initState();
   }
 
@@ -88,7 +85,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
                           gameId = '';
                         }
                       });
-                      setState(() {});
                     }),
               ]),
               SizedBox(
@@ -155,14 +151,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   // PubNub Methods
   //
 
-  void startPubnub() async {
-    uuid = const Uuid().v4();
-    pubnub = PubNub(
-        defaultKeyset: Keyset(subscribeKey: 'demo', publishKey: 'demo', userId: UserId(uuid)));
-    debugPrint('My userId is $uuid');
-  }
-
-  void createGameId() async {
+    void createGameId() async {
     gameId = const Uuid().v4().substring(0, gameIdLength);
     debugPrint('Game ID: $gameId');
     joinedPlayers = 1;

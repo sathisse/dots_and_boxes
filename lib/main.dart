@@ -13,7 +13,7 @@ late final String uuid;
 late final PubNub pubnub;
 
 void main() {
-  startPubnub();
+  startPubNub();
   runApp(const ProviderScope(child: MyApp()));
 }
 
@@ -41,14 +41,14 @@ class MyApp extends StatelessWidget {
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: windowMargin, vertical: windowMargin),
               child: const DotsAndBoxesGame()),
-          // child: const Lobby()),
+              // child: const Lobby()),
         ),
       ),
     );
   }
 }
 
-void startPubnub() async {
+void startPubNub() async {
   uuid = const Uuid().v4();
   pubnub =
       PubNub(defaultKeyset: Keyset(subscribeKey: 'demo', publishKey: 'demo', userId: UserId(uuid)));

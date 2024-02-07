@@ -85,6 +85,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
                           gameId = '';
                         }
                       });
+                      setState(() {});
                     }),
               ]),
               SizedBox(
@@ -151,7 +152,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
   // PubNub Methods
   //
 
-    void createGameId() async {
+  void createGameId() async {
     gameId = const Uuid().v4().substring(0, gameIdLength);
     debugPrint('Game ID: $gameId');
     joinedPlayers = 1;

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:uuid/uuid.dart';
 
 import 'game_size_slider.dart';
 
+const gameIdLength = 3;
+
 class CreateNewGameDialog<T> extends PopupRoute<T> {
-  final void Function(int, int) createNewGame;
+  final void Function(String, int, int) createNewGame;
   int numPlayers = 2;
   int numDots = 12;
   bool createLocalGame = false;
@@ -68,7 +71,8 @@ class CreateNewGameDialog<T> extends PopupRoute<T> {
                     const Spacer(),
                     ElevatedButton(
                         onPressed: () {
-                          createNewGame(numDots, numPlayers);
+                          final gameId = const Uuid().v4().substring(0, gameIdLength);
+                          createNewGame(gameId, numDots, numPlayers);
                           Navigator.pop(context);
                         },
                         child: const Text("Create")),
@@ -86,9 +90,10 @@ class CreateNewGameDialog<T> extends PopupRoute<T> {
                 ElevatedButton(
                     onPressed: () {
                       debugPrint('Playing locally with shared device.');
-                      // Todo: Start local-only game.
+                      createNewGame('Local', numDots, numPlayers);
+                      Navigator.pop(context);
                     },
-                    child: const Text("Create and play locally with shared device")),
+                    child: const Text("Create and play locally on a shared device")),
               ],
             )
           ],

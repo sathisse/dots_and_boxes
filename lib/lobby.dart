@@ -1,24 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
-import 'package:uuid/uuid.dart';
 
-import 'game_info.dart';
 import 'create_new_game_dialog.dart';
+import 'game_info.dart';
 
-const gameIdLength = 3;
-
-final lobbyProvider = StateProvider<List<dynamic>>((ref) => <dynamic>[]);
-
-class Lobby extends ConsumerStatefulWidget {
+class Lobby extends StatefulWidget {
   const Lobby({super.key});
 
   @override
-  ConsumerState<Lobby> createState() => _Lobby();
+  State<Lobby> createState() => _Lobby();
 }
 
-class _Lobby extends ConsumerState<Lobby> {
+class _Lobby extends State<Lobby> {
   _Lobby();
 
   late AutoScrollController scrollController;
@@ -94,16 +88,14 @@ class _Lobby extends ConsumerState<Lobby> {
                       padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
                       child: getRow(item.key, item.value));
                 }).toList())),
-        ElevatedButton(
+        IconButton(
+          icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Leave game'),
+          tooltip: 'Create new game',
           onPressed: () {
             setState(() {
               Navigator.of(context).push(CreateNewGameDialog<void>(createNewGame: createNewGame));
             });
           },
-          child: const Column(children: [
-            Icon(Icons.add_circle_outline, semanticLabel: 'Create game'),
-            Text("Create new game")
-          ]),
         ),
       ]),
     );
@@ -127,6 +119,7 @@ class _Lobby extends ConsumerState<Lobby> {
               color: Colors.black.withAlpha(25)),
           child: Row(children: [
             IconButton(
+                tooltip: 'Join game',
                 onPressed: () {
                   scrollToItem(item.gameId);
                   // Start/join game
@@ -163,16 +156,17 @@ class _Lobby extends ConsumerState<Lobby> {
     await scrollController.highlight(index);
   }
 
-  void createNewGame(int numDots, int numPlayers) {
-    final gameId = const Uuid().v4().substring(0, gameIdLength);
+  void createNewGame(String gameId, int numDots, int numPlayers) {
     setState(() {
       gameList.add(GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
       gameList.sort();
-      scrollToItem(gameId);
     });
 
-    debugPrint('Created new game with $numDots dots and $numPlayers players.');
+    scrollToItem(gameId);
+    debugPrint('Created new game ($gameId) with $numDots dots and $numPlayers players.');
 
-    //ToDo: Automatically start/join newly created game?
+    if (gameId == 'Local') {
+      debugPrint('Starting local-only game');
+    }
   }
 }

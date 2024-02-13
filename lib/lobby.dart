@@ -1,6 +1,12 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:pubnub/pubnub.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
+
+import 'main.dart' show uuid, pubnub;
+import 'lobby_manager.dart' show LobbyManagerMsgType;
 
 import 'create_new_game_dialog.dart';
 import 'game_info.dart';
@@ -15,9 +21,12 @@ class Lobby extends StatefulWidget {
 class _Lobby extends State<Lobby> {
   _Lobby();
 
+  late Subscription subscription;
+  late Channel channel;
+
   late AutoScrollController scrollController;
   late List<GameInfo> gameList;
-  late int selectedGame;
+  late String selectedGameId;
 
   @override
   void initState() {
@@ -27,27 +36,12 @@ class _Lobby extends State<Lobby> {
         viewportBoundaryGetter: () => Rect.fromLTRB(0, 0, 0, MediaQuery.of(context).padding.bottom),
         axis: Axis.vertical);
 
-    gameList = <GameInfo>[
-      GameInfo(gameId: '001', numDots: 12, numPlayers: 2)..setNumJoined(1),
-      GameInfo(gameId: '002', numDots: 12, numPlayers: 3)..setNumJoined(1),
-      GameInfo(gameId: '003', numDots: 20, numPlayers: 2),
-      GameInfo(gameId: '004', numDots: 24, numPlayers: 5)..setNumJoined(4),
-      GameInfo(gameId: '005', numDots: 24, numPlayers: 4)..setNumJoined(1),
-      GameInfo(gameId: '006', numDots: 36, numPlayers: 2),
-      GameInfo(gameId: '007', numDots: 36, numPlayers: 3),
-      GameInfo(gameId: '008', numDots: 54, numPlayers: 2)..setNumJoined(2),
-      GameInfo(gameId: '009', numDots: 60, numPlayers: 2),
-      GameInfo(gameId: '010', numDots: 48, numPlayers: 3),
-      GameInfo(gameId: '011', numDots: 12, numPlayers: 5)..setNumJoined(1),
-      GameInfo(gameId: '012', numDots: 12, numPlayers: 3)..setNumJoined(1),
-      GameInfo(gameId: '013', numDots: 20, numPlayers: 2),
-      GameInfo(gameId: '014', numDots: 24, numPlayers: 2)..setNumJoined(2),
-      GameInfo(gameId: '015', numDots: 24, numPlayers: 4)..setNumJoined(1),
-      GameInfo(gameId: '016', numDots: 36, numPlayers: 2),
-    ];
-    gameList.sort();
+    gameList = [];
+    selectedGameId = '';
 
-    selectedGame = -1;
+    subscribeToLobbyChannel();
+
+    _sendRequestListMsgToMgr();
   }
 
   @override
@@ -114,7 +108,8 @@ class _Lobby extends State<Lobby> {
         },
         child: Container(
           decoration: BoxDecoration(
-              border: Border.all(color: index != selectedGame ? Colors.white10 : Colors.white60),
+              border: Border.all(
+                  color: item.gameId != selectedGameId ? Colors.white10 : Colors.white60),
               borderRadius: const BorderRadius.all(Radius.circular(10)),
               color: Colors.black.withAlpha(25)),
           child: Row(children: [
@@ -122,9 +117,9 @@ class _Lobby extends State<Lobby> {
                 tooltip: 'Join game',
                 onPressed: () {
                   scrollToItem(item.gameId);
-                  // Start/join game
                   debugPrint(
                       'Joining game ${item.gameId}, with ${item.numDots} dots and ${item.numPlayers} players');
+                  _sendStartGameMsgToMgr(uuid, item.gameId);
                 },
                 icon: const Icon(Icons.play_circle_outline)),
             // if (kDebugMode)
@@ -147,26 +142,139 @@ class _Lobby extends State<Lobby> {
   }
 
   void scrollToItem(String gameId) async {
-    final index = gameList.indexWhere((item) => item.gameId == gameId);
     setState(() {
-      selectedGame = index;
+      selectedGameId = gameId;
     });
-    debugPrint('scroll index is $index');
+    scrollToSelected();
+  }
+
+  void scrollToSelected() async {
+    final index = gameList.indexWhere((item) => item.gameId == selectedGameId);
+    // debugPrint('scroll index is $index');
     await scrollController.scrollToIndex(index, preferPosition: AutoScrollPosition.begin);
     await scrollController.highlight(index);
   }
 
   void createNewGame(String gameId, int numDots, int numPlayers) {
-    setState(() {
-      gameList.add(GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
-      gameList.sort();
-    });
-
-    scrollToItem(gameId);
-    debugPrint('Created new game ($gameId) with $numDots dots and $numPlayers players.');
-
     if (gameId == 'Local') {
       debugPrint('Starting local-only game');
+    } else {
+      _sendCreateGameToMgr(
+          uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
+      debugPrint('Requested creation of game $gameId with $numDots dots and $numPlayers players.');
     }
+  }
+
+  //
+  // PubNub Methods
+  //
+
+  void unsubscribeFromLobbyChannel() async {
+    try {
+      debugPrint('Unsubscribing from lobby channel');
+      await subscription.cancel();
+    } catch (e) {
+      debugPrint('Remote unsubscribe call failed (probably due to no subscription active)');
+    }
+  }
+
+  void subscribeToLobbyChannel() async {
+    debugPrint('Subscribing to lobby channel');
+    unsubscribeFromLobbyChannel();
+
+    var channelName = 'DotsAndBoxes.lobby';
+    subscription = pubnub.subscribe(channels: {channelName});
+    channel = pubnub.channel(channelName);
+
+    // Sets up a listener for new messages:
+    subscription.messages.forEach((message) => handleMessageFromManager(message));
+  }
+
+  //
+  // Lobby Message Methods
+  //
+
+  void handleMessageFromManager(message) {
+    if (message.uuid.toString() == uuid) {
+      debugPrint('Sent a message to lobby: "${message.payload}"');
+    } else {
+      debugPrint('Received a message from lobby: "${message.payload}"');
+    }
+
+    switch (LobbyManagerMsgType.values
+        .firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
+      case LobbyManagerMsgType.updateList:
+        debugPrint(">>>>> Update-list message");
+        setState(() {
+          gameList = (json.decode(message.payload['gameList']) as List)
+              .map((i) => GameInfo.fromJson(i))
+              .toList()
+            ..sort();
+        });
+        scrollToSelected();
+        break;
+
+      case LobbyManagerMsgType.created:
+        debugPrint(">>>>> Created message");
+        final requestingUserId = json.decode(message.payload['userId']);
+        if (requestingUserId == uuid) {
+          final GameInfo newGame = GameInfo.fromJson(json.decode(message.payload['game']));
+          gameList.add(newGame);
+          gameList.sort();
+          scrollToItem(newGame.gameId);
+        }
+        break;
+
+      case LobbyManagerMsgType.joined:
+        debugPrint(">>>>> Joined message");
+        final userId = json.decode(message.payload['userId']);
+        final GameInfo game = GameInfo.fromJson(json.decode(message.payload['game']));
+        debugPrint('user $userId joined game ${game.gameId} as player ${game.numJoined}');
+
+        setState(() {
+          // ToDo: Probably should validate that the game was in fact still in the list:
+          gameList[gameList.indexWhere((g) => g.gameId == game.gameId)] = game;
+          debugPrint('gameList is now $gameList');
+        });
+        // ToDo: Start the game.
+        break;
+
+      case LobbyManagerMsgType.rejected:
+        debugPrint(">>>>> Rejected message");
+        final userId = json.decode(message.payload['userId']);
+        final String rejectionMsg = json.decode(message.payload['rejectionMsg']);
+        debugPrint('user $userId was rejected because "$rejectionMsg"');
+        // ToDo: Inform the user.
+        break;
+
+      // The following lobby messages are not ignored by the lobby:
+      case LobbyManagerMsgType.requestList:
+      case LobbyManagerMsgType.createGame:
+      case LobbyManagerMsgType.joinGame:
+        break;
+    }
+
+    setState(() {});
+  }
+
+  void _sendRequestListMsgToMgr() async {
+    await channel.publish({"msgType": json.encode(LobbyManagerMsgType.requestList.name)});
+  }
+
+  void _sendCreateGameToMgr(String userId, GameInfo game) async {
+    await channel.publish({
+      "msgType": json.encode(LobbyManagerMsgType.createGame.name),
+      "userId": json.encode(userId),
+      "game": json.encode(game)
+    });
+    // "gameList": json.encode([game].toList().map((game) => game.toJson()).toList())});
+  }
+
+  void _sendStartGameMsgToMgr(String userId, String gameId) async {
+    await channel.publish({
+      "msgType": json.encode(LobbyManagerMsgType.joinGame.name),
+      "userId": json.encode(userId),
+      "gameId": json.encode(gameId)
+    });
   }
 }

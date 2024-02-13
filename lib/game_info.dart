@@ -1,3 +1,7 @@
+import 'package:json_annotation/json_annotation.dart';
+
+part 'game_info.g.dart';
+
 enum GameStatus {
   waiting(1, 'Waiting for more'),
   playing(2, 'Playing now'),
@@ -9,30 +13,46 @@ enum GameStatus {
   final String label;
 }
 
+@JsonSerializable(explicitToJson: true)
 class GameInfo implements Comparable<GameInfo> {
   final String gameId;
   final int numDots;
   final int numPlayers;
-  int numJoined = 0;
-  GameStatus status = GameStatus.idle;
-  DateTime lastChange = DateTime.timestamp();
 
-  GameInfo({required this.gameId, required this.numDots, required this.numPlayers});
+  int _numJoined = 0;
+  GameStatus _status = GameStatus.idle;
+  DateTime _lastChange = DateTime.timestamp();
 
-  void setNumJoined(int numJoined) {
-    this.numJoined = numJoined;
-    status = (numJoined == numPlayers ? GameStatus.playing : GameStatus.waiting);
-    lastChange = DateTime.timestamp();
+  int get numJoined {
+    return _numJoined;
   }
 
-  void setGameStatus(GameStatus status) {
-    this.status = status;
-    lastChange = DateTime.timestamp();
+  set numJoined(int numJoined) {
+    _numJoined = numJoined;
+    _status = (numJoined == numPlayers ? GameStatus.playing : GameStatus.waiting);
+    _lastChange = DateTime.timestamp();
   }
+
+  GameStatus get status {
+    return _status;
+  }
+
+  set status(GameStatus status) {
+    _status = status;
+    _lastChange = DateTime.timestamp();
+  }
+
+  GameInfo({required this.gameId, required this.numDots, required this.numPlayers}) {
+    _lastChange = DateTime.timestamp();
+  }
+
+  factory GameInfo.fromJson(Map<String, dynamic> json) => _$GameInfoFromJson(json);
+
+  Map<String, dynamic> toJson() => _$GameInfoToJson(this);
 
   @override
   String toString() {
-    return 'GameInfo($gameId, $numDots, $numPlayers, $numJoined, ${status.label}, $lastChange)';
+    return 'GameInfo($gameId, $numDots, $numPlayers, $numJoined, ${status.label}, $_lastChange)';
   }
 
   @override

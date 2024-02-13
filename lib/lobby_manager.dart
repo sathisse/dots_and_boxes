@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -20,6 +21,7 @@ enum LobbyManagerMsgType {
 }
 
 const windowMargin = 8.0;
+const int secsToWaitForStartupCheck = 3;
 const int secsBetweenGameListUpdates = 20;
 
 void main() {
@@ -66,6 +68,9 @@ typedef LogMsg = ({DateTime timestamp, String message});
 class _LobbyManager extends State<LobbyManager> {
   _LobbyManager();
 
+  late Timer startupTimer;
+  bool startupFinished = false;
+
   late Timer updateTimer;
   bool gameChangesMade = false;
 
@@ -90,18 +95,6 @@ class _LobbyManager extends State<LobbyManager> {
 
     appendMessageToLog('Starting lobby manager');
 
-    updateTimer = Timer.periodic(
-      const Duration(seconds: secsBetweenGameListUpdates),
-      (timer) {
-        if (gameChangesMade) {
-          gameChangesMade = false;
-          _sendUpdateListMsgToLobby();
-        } else {
-          appendMessageToLog('No changes made; suppressing update');
-        }
-      },
-    );
-
     gameList = <GameInfo>[
       GameInfo(gameId: '001', numDots: 12, numPlayers: 2)..numJoined = 1,
       GameInfo(gameId: '002', numDots: 12, numPlayers: 3)..numJoined = 1,
@@ -124,7 +117,25 @@ class _LobbyManager extends State<LobbyManager> {
 
     startPubnub();
     subscribeToLobbyChannel();
-    _sendUpdateListMsgToLobby();
+
+    appendMessageToLog('Checking for already running instance...');
+    _sendRequestListMsgToMgr();
+    startupTimer = Timer(const Duration(seconds: secsToWaitForStartupCheck), () {
+      startupFinished = true;
+      appendMessageToLog('No existing manager found; continuing startup');
+      _sendUpdateListMsgToLobby();
+      updateTimer = Timer.periodic(
+        const Duration(seconds: secsBetweenGameListUpdates),
+        (timer) {
+          if (gameChangesMade) {
+            gameChangesMade = false;
+            _sendUpdateListMsgToLobby();
+          } else {
+            appendMessageToLog('No changes made; suppressing update');
+          }
+        },
+      );
+    });
   }
 
   @override
@@ -138,6 +149,15 @@ class _LobbyManager extends State<LobbyManager> {
                 children: msgLog.asMap().entries.map<Widget>((item) {
                   return getRow(item.key, item.value);
                 }).toList())),
+        IconButton(
+          icon: const Icon(Icons.cancel_outlined, semanticLabel: 'Exit manager app'),
+          tooltip: 'Exit app',
+          onPressed: () {
+            setState(() {
+              exit(1);
+            });
+          },
+        ),
       ]),
     );
   }
@@ -231,6 +251,18 @@ class _LobbyManager extends State<LobbyManager> {
         _sendUpdateListMsgToLobby();
         break;
 
+      case LobbyManagerMsgType.updateList:
+        // The only way we receive this is 1) we sent it, or 2) another running mgr sent it:
+        if (startupFinished || message.uuid.toString() == uuid) {
+          // Either we've finished startup or we sent it, so there's nothing to worry about.
+        } else {
+          // An already running manager sent it during ur startup; exit immediately.
+          appendMessageToLog("An already running manager detected; unsubscribing immediately!");
+          subscription.cancel();
+          startupTimer.cancel();
+        }
+        break;
+
       case LobbyManagerMsgType.createGame:
         appendMessageToLog(">>>>> Create-game message");
         final userId = json.decode(message.payload['userId']);
@@ -261,7 +293,6 @@ class _LobbyManager extends State<LobbyManager> {
         break;
 
       // The following lobby messages are not ignored by the lobby manager:
-      case LobbyManagerMsgType.updateList:
       case LobbyManagerMsgType.created:
       case LobbyManagerMsgType.joined:
       case LobbyManagerMsgType.rejected:
@@ -269,6 +300,12 @@ class _LobbyManager extends State<LobbyManager> {
     }
 
     scrollToEnd();
+  }
+
+  // Send request-list message. This will cause any already running managers to replay with
+  //   a game list. This will notify this run to exit immediately.
+  void _sendRequestListMsgToMgr() async {
+    await channel.publish({"msgType": json.encode(LobbyManagerMsgType.requestList.name)});
   }
 
   void _sendUpdateListMsgToLobby() async {

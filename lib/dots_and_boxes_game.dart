@@ -146,35 +146,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     winnerText = "";
 
     setState(() {});
-
-    // For testing, close some (or all) of the boxes:
-    // Future.delayed(const Duration(seconds: 1)).then((_) => closeSomeBoxes(percentage: 100));
-  }
-
-  // For testing, not actual game-play:
-  Future<void> closeSomeBoxes({int percentage = 100}) async {
-    var player = Who.p1;
-    final shuffled = lines.toList()..shuffle();
-    for (final line in shuffled.take((shuffled.length * percentage / 100).ceil())) {
-      line.drawer = player;
-      await Future.delayed(const Duration(milliseconds: 500));
-      setState(() {});
-
-      for (final box in boxes.where((box) => box.lines.containsValue(line))) {
-        if (box.isClosed()) {
-          box.closer = player;
-          await Future.delayed(const Duration(milliseconds: 500));
-          setState(() {});
-        }
-      }
-
-      // Switch players:
-      if (player == Who.p1) {
-        player = Who.p2;
-      } else {
-        player = Who.p1;
-      }
-    }
   }
 
   @override

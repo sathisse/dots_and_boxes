@@ -3,7 +3,7 @@ import 'package:uuid/uuid.dart';
 
 import 'game_size_slider.dart';
 
-const gameIdLength = 3;
+const gameIdLength = 8;
 
 class CreateNewGameDialog<T> extends PopupRoute<T> {
   final void Function(String, int, int) createNewGame;

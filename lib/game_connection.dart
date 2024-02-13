@@ -259,7 +259,6 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
       case GameMsgType.line:
         debugPrint(">>>>> Line-requested message with ${json.decode(message.payload['line'])}");
-
         _sendMessageToGui(message.payload);
         break;
 

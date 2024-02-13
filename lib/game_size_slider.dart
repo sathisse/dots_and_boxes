@@ -36,13 +36,10 @@ class _GameSizeSliderState extends State<GameSizeSlider> {
   }
 
   onSliderChanged(double value) {
-    debugPrint("Slider tab set to ${value.round()}");
-
     sliderValue = value;
     var dims = dimChoices.entries
         .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[value.floor()])
         .first;
-    debugPrint("dims=$dims");
     if (dims.key != numberOfDots) {
       widget.setNumberOfDots(dims.key);
     }

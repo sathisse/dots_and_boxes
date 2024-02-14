@@ -46,48 +46,79 @@ class _Lobby extends State<Lobby> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(children: [
-        const Row(children: [
-          SizedBox(width: 40),
-          if (kDebugMode)
-            Expanded(
-                flex: 10,
-                child: Align(
-                    alignment: Alignment.center,
-                    child: Text('GameId', style: TextStyle(fontWeight: FontWeight.bold)))),
+        if (gameList.isNotEmpty)
           Expanded(
-              flex: 33,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Text('Dots', style: TextStyle(fontWeight: FontWeight.bold)))),
-          Expanded(
-              flex: 33,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Text('Players', style: TextStyle(fontWeight: FontWeight.bold)))),
-          Expanded(
-              flex: 33,
-              child: Align(
-                  alignment: Alignment.center,
-                  child: Text('Game Status', style: TextStyle(fontWeight: FontWeight.bold))))
-        ]),
-        const SizedBox(height: 10),
+            flex: 95,
+            child: Column(
+              children: [
+                const Row(children: [
+                  SizedBox(width: 40),
+                  if (kDebugMode)
+                    Expanded(
+                        flex: 10,
+                        child: Align(
+                            alignment: Alignment.center,
+                            child: Text('GameId', style: TextStyle(fontWeight: FontWeight.bold)))),
+                  Expanded(
+                      flex: 33,
+                      child: Align(
+                          alignment: Alignment.center,
+                          child: Text('Dots', style: TextStyle(fontWeight: FontWeight.bold)))),
+                  Expanded(
+                      flex: 33,
+                      child: Align(
+                          alignment: Alignment.center,
+                          child: Text('Players', style: TextStyle(fontWeight: FontWeight.bold)))),
+                  Expanded(
+                      flex: 33,
+                      child: Align(
+                          alignment: Alignment.center,
+                          child:
+                              Text('Game Status', style: TextStyle(fontWeight: FontWeight.bold))))
+                ]),
+                const SizedBox(height: 10),
+                Expanded(
+                    child: ListView(
+                        scrollDirection: Axis.vertical,
+                        controller: scrollController,
+                        children: gameList.asMap().entries.map<Widget>((item) {
+                          return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
+                              child: getRow(item.key, item.value));
+                        }).toList())),
+              ],
+            ),
+          ),
         Expanded(
-            child: ListView(
-                scrollDirection: Axis.vertical,
-                controller: scrollController,
-                children: gameList.asMap().entries.map<Widget>((item) {
-                  return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 1.0, horizontal: 0.0),
-                      child: getRow(item.key, item.value));
-                }).toList())),
-        IconButton(
-          icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Leave game'),
-          tooltip: 'Create new game',
-          onPressed: () {
-            setState(() {
-              Navigator.of(context).push(CreateNewGameDialog<void>(createNewGame: createNewGame));
-            });
-          },
+          flex: 5,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Spacer(),
+              TextButton.icon(
+                label: const Text('Local game'),
+                icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Create local game'),
+                onPressed: () {
+                  setState(() {
+                    Navigator.of(context).push(
+                        CreateNewGameDialog<void>(localGame: true, createNewGame: createNewGame));
+                  });
+                },
+              ),
+              const Spacer(),
+              TextButton.icon(
+                label: const Text('Network game'),
+                icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Create network game'),
+                onPressed: () {
+                  setState(() {
+                    Navigator.of(context).push(
+                        CreateNewGameDialog<void>(localGame: false, createNewGame: createNewGame));
+                  });
+                },
+              ),
+              const Spacer(),
+            ],
+          ),
         ),
       ]),
     );

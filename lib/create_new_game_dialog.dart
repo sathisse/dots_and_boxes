@@ -6,12 +6,13 @@ import 'game_size_slider.dart';
 const gameIdLength = 8;
 
 class CreateNewGameDialog<T> extends PopupRoute<T> {
+  final bool localGame;
   final void Function(String, int, int) createNewGame;
   int numPlayers = 2;
   int numDots = 12;
   bool createLocalGame = false;
 
-  CreateNewGameDialog({required this.createNewGame});
+  CreateNewGameDialog({required this.localGame, required this.createNewGame});
 
   @override
   Color? get barrierColor => Colors.black.withAlpha(0x50);
@@ -72,7 +73,8 @@ class CreateNewGameDialog<T> extends PopupRoute<T> {
                     ElevatedButton(
                         onPressed: () {
                           final gameId = const Uuid().v4().substring(0, gameIdLength);
-                          createNewGame(gameId, numDots, numPlayers);
+                          debugPrint('localGame is $localGame');
+                          createNewGame(localGame ? 'Local' : gameId, numDots, numPlayers);
                           Navigator.pop(context);
                         },
                         child: const Text("Create")),
@@ -86,14 +88,6 @@ class CreateNewGameDialog<T> extends PopupRoute<T> {
                     const Spacer(),
                   ],
                 ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                    onPressed: () {
-                      debugPrint('Playing locally with shared device.');
-                      createNewGame('Local', numDots, numPlayers);
-                      Navigator.pop(context);
-                    },
-                    child: const Text("Create and play locally on a shared device")),
               ],
             )
           ],

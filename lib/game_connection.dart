@@ -221,6 +221,7 @@ class _GameConnection extends ConsumerState<GameConnection> {
           _sendMessageToGui(message.payload);
         }
         break;
+
       case GameMsgType.added:
         final String userId = json.decode(message.payload['userId']);
         final int playerIndex = json.decode(message.payload['playerIndex']);

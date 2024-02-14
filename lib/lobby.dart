@@ -5,11 +5,10 @@ import 'package:flutter/foundation.dart';
 import 'package:pubnub/pubnub.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
-import 'main.dart' show uuid, pubnub;
-import 'lobby_manager.dart' show LobbyManagerMsgType;
-
 import 'create_new_game_dialog.dart';
 import 'game_info.dart';
+import 'lobby_manager.dart' show LobbyManagerMsgType;
+import 'main.dart' show uuid, pubnub;
 
 class Lobby extends StatefulWidget {
   const Lobby({super.key});
@@ -40,7 +39,6 @@ class _Lobby extends State<Lobby> {
     selectedGameId = '';
 
     subscribeToLobbyChannel();
-
     _sendRequestListMsgToMgr();
   }
 
@@ -119,7 +117,7 @@ class _Lobby extends State<Lobby> {
                   scrollToItem(item.gameId);
                   debugPrint(
                       'Joining game ${item.gameId}, with ${item.numDots} dots and ${item.numPlayers} players');
-                  _sendStartGameMsgToMgr(uuid, item.gameId);
+                  _sendJoinGameMsgToMgr(uuid, item.gameId);
                 },
                 icon: const Icon(Icons.play_circle_outline)),
             // if (kDebugMode)
@@ -150,7 +148,6 @@ class _Lobby extends State<Lobby> {
 
   void scrollToSelected() async {
     final index = gameList.indexWhere((item) => item.gameId == selectedGameId);
-    // debugPrint('scroll index is $index');
     await scrollController.scrollToIndex(index, preferPosition: AutoScrollPosition.begin);
     await scrollController.highlight(index);
   }
@@ -222,6 +219,8 @@ class _Lobby extends State<Lobby> {
           gameList.add(newGame);
           gameList.sort();
           scrollToItem(newGame.gameId);
+
+          _sendJoinGameMsgToMgr(uuid, newGame.gameId);
         }
         break;
 
@@ -236,7 +235,9 @@ class _Lobby extends State<Lobby> {
           gameList[gameList.indexWhere((g) => g.gameId == game.gameId)] = game;
           debugPrint('gameList is now $gameList');
         });
-        // ToDo: Start the game.
+        gameList.sort();
+        scrollToItem(game.gameId);
+        // ToDo: Actually start the game GUI.
         break;
 
       case LobbyManagerMsgType.rejected:
@@ -267,10 +268,9 @@ class _Lobby extends State<Lobby> {
       "userId": json.encode(userId),
       "game": json.encode(game)
     });
-    // "gameList": json.encode([game].toList().map((game) => game.toJson()).toList())});
   }
 
-  void _sendStartGameMsgToMgr(String userId, String gameId) async {
+  void _sendJoinGameMsgToMgr(String userId, String gameId) async {
     await channel.publish({
       "msgType": json.encode(LobbyManagerMsgType.joinGame.name),
       "userId": json.encode(userId),

@@ -12,12 +12,12 @@ import 'game_info.dart';
 
 enum LobbyManagerMsgType {
   requestList, // Lobby-->Mgr
-  updateList, // Mgr-->Lobby
-  createGame, // Lobby-->Mgr
-  created, // Mgr-->Lobby
-  joinGame, // Lobby-->Mgr
-  joined, // Mgr-->Lobby
-  rejected, // Mgr-->Lobby
+  updateList, //  Mgr-->Lobby
+  createGame, //  Lobby-->Mgr
+  created, //     Mgr-->Lobby
+  joinGame, //    Lobby-->Mgr
+  joined, //      Mgr-->Lobby
+  rejected, //    Mgr-->Lobby
 }
 
 const windowMargin = 8.0;
@@ -120,10 +120,12 @@ class _LobbyManager extends State<LobbyManager> {
 
     appendMessageToLog('Checking for already running instance...');
     _sendRequestListMsgToMgr();
+
     startupTimer = Timer(const Duration(seconds: secsToWaitForStartupCheck), () {
       startupFinished = true;
       appendMessageToLog('No existing manager found; continuing startup');
       _sendUpdateListMsgToLobby();
+
       updateTimer = Timer.periodic(
         const Duration(seconds: secsBetweenGameListUpdates),
         (timer) {
@@ -195,6 +197,7 @@ class _LobbyManager extends State<LobbyManager> {
 
     // Keep the log size manageable by removing all but the last N messages:
     msgLog = msgLog.getRange(max(msgLog.length - 1000, 0), msgLog.length).toList();
+    // ToDo: do we need a setState here since we're scrolling immediately afterwards?
     setState(() {});
     scrollToEnd();
 
@@ -238,7 +241,9 @@ class _LobbyManager extends State<LobbyManager> {
   //
 
   void handleMessageFromLobby(message) {
+    bool senderIsMe = false;
     if (message.uuid.toString() == uuid) {
+      senderIsMe = true;
       appendMessageToLog('Sent a message to lobby: "${message.payload}"');
     } else {
       appendMessageToLog('Received a message from lobby: "${message.payload}"');
@@ -248,12 +253,14 @@ class _LobbyManager extends State<LobbyManager> {
         .firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
       case LobbyManagerMsgType.requestList:
         appendMessageToLog(">>>>> Request-list-game message");
-        _sendUpdateListMsgToLobby();
+        if (!senderIsMe) {
+          _sendUpdateListMsgToLobby();
+        }
         break;
 
       case LobbyManagerMsgType.updateList:
         // The only way we receive this is 1) we sent it, or 2) another running mgr sent it:
-        if (startupFinished || message.uuid.toString() == uuid) {
+        if (startupFinished || senderIsMe) {
           // Either we've finished startup or we sent it, so there's nothing to worry about.
         } else {
           // An already running manager sent it during ur startup; exit immediately.
@@ -278,10 +285,10 @@ class _LobbyManager extends State<LobbyManager> {
         final String gameId = json.decode(message.payload['gameId']);
         final GameInfo? game = gameList.where((item) => item.gameId == gameId).firstOrNull;
         if (game == null) {
-          _sendRejectedMsgToLobby(userId, "That game doesn't exist");
+          _sendRejectedMsgToLobby(userId, "That game doesn't exist.");
         } else {
           if (game.status == GameStatus.playing) {
-            _sendRejectedMsgToLobby(userId, 'That game is already playing');
+            _sendRejectedMsgToLobby(userId, 'That game is already full and playing.');
           } else {
             if (++game.numJoined == game.numPlayers) {
               game.status = GameStatus.playing;
@@ -302,8 +309,8 @@ class _LobbyManager extends State<LobbyManager> {
     scrollToEnd();
   }
 
-  // Send request-list message. This will cause any already running managers to replay with
-  //   a game list. This will notify this run to exit immediately.
+  // Send request-list message. This will cause any already running managers to reply with
+  //   a game list. This will notify this run not to function as a manager.
   void _sendRequestListMsgToMgr() async {
     await channel.publish({"msgType": json.encode(LobbyManagerMsgType.requestList.name)});
   }
@@ -314,36 +321,32 @@ class _LobbyManager extends State<LobbyManager> {
       "msgType": json.encode(LobbyManagerMsgType.updateList.name),
       "gameList": json.encode(gameList.toList().map((game) => game.toJson()).toList())
     });
-    scrollToEnd();
   }
 
   void _sendCreatedMsgToLobby(String userId, GameInfo game) async {
-    appendMessageToLog('in _sendCreatedMsgToLobby(userId:|$userId|, game:|$game|")');
+    // appendMessageToLog('in _sendCreatedMsgToLobby(userId:|$userId|, game:|$game|")');
     await channel.publish({
       "msgType": json.encode(LobbyManagerMsgType.created.name),
       "userId": json.encode(userId),
       "game": json.encode(game)
     });
-    scrollToEnd();
   }
 
   void _sendJoinedMsgToLobby(String userId, GameInfo game) async {
-    appendMessageToLog('in _sendJoinedMsgToLobby(userId:|$userId|, game:|$game|")');
+    // appendMessageToLog('in _sendJoinedMsgToLobby(userId:|$userId|, game:|$game|")');
     await channel.publish({
       "msgType": json.encode(LobbyManagerMsgType.joined.name),
       "userId": json.encode(userId),
       "game": json.encode(game),
     });
-    scrollToEnd();
   }
 
   void _sendRejectedMsgToLobby(String userId, String msg) async {
-    appendMessageToLog('in _sendRejectedMsgToLobby(userId:|$userId|, msg:|$msg|")');
+    // appendMessageToLog('in _sendRejectedMsgToLobby(userId:|$userId|, msg:|$msg|")');
     await channel.publish({
       "msgType": json.encode(LobbyManagerMsgType.rejected.name),
       "userId": json.encode(userId),
       "rejectionMsg": json.encode(msg)
     });
-    scrollToEnd();
   }
 }

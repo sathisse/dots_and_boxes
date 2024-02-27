@@ -2,6 +2,7 @@ import 'dart:core';
 import 'dart:convert';
 
 import 'package:dots_and_boxes/game_connection.dart';
+import 'package:dots_and_boxes/game_info.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:format/format.dart';
@@ -30,13 +31,24 @@ final Map<Who, Player> players = {
   Who.p5: Player("Player 5", Colors.yellow),
 };
 
-int numberOfDots = 12;
 late int dotsHorizontal;
 late int dotsVertical;
-late bool isConnected;
 
 class DotsAndBoxesGame extends ConsumerStatefulWidget {
-  const DotsAndBoxesGame({super.key});
+  late final String gameId;
+  late final int numberOfDots;
+  late final int numPlayers;
+  late final int numJoined;
+  late final int playerIndex;
+
+  DotsAndBoxesGame({required GameInfo game, super.key}) {
+    debugPrint('in DotsAndBoxesGame(game:|$game|")');
+    gameId = game.gameId;
+    numberOfDots = game.numDots;
+    numPlayers = game.numPlayers;
+    numJoined = game.numJoined;
+    playerIndex = game.numJoined;
+  }
 
   @override
   ConsumerState<DotsAndBoxesGame> createState() => _DotsAndBoxesGame();
@@ -48,35 +60,30 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   late Set<Box> boxes; // These are only displayed if closed.
 
   late Who currentPlayer;
-  late int numPlayers = 1;
-  late int joinedPlayers;
   late String winnerText;
   late bool showLeaveGameConfirmation;
-  late bool gameStarted;
+  late int numJoined = widget.numJoined;
+  late bool gameStarted = false;
 
-  late int playerIndex = 0;
   late Who playerId = Who.nobody;
   late bool isConnected = false;
-  late String gameId = "<not connected>";
   late String lastActionTxt = "<not connected>";
 
   @override
   void initState() {
     super.initState();
 
-    var dimChoices = getDimensionChoices();
-    var dims = dimChoices.entries
-        .where((dim) => dim.value.$1 * dim.value.$2 >= dimChoices.keys.toList()[4])
-        .first;
-    // debugPrint("dims=$dims");
-    configureBoard(dims);
+    configureBoard(getDimensionChoices()
+        .entries
+        .where((dim) => dim.value.$1 * dim.value.$2 >= widget.numberOfDots)
+        .first);
   }
 
   configureBoard(dims) {
-    numberOfDots = dims.key;
     dotsHorizontal = dims.value.$1;
     dotsVertical = dims.value.$2;
-    debugPrint('Nbr of dots set to $numberOfDots, dims set to ($dotsHorizontal, $dotsVertical)');
+    debugPrint(
+        'Nbr of dots set to ${widget.numberOfDots}, dims set to ($dotsHorizontal, $dotsVertical)');
 
     dots = {};
     for (int x = 0; x < dotsHorizontal; x++) {
@@ -130,7 +137,19 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
 
   resetGame() {
     showLeaveGameConfirmation = false;
-    gameStarted = false;
+
+    if (widget.gameId == 'Local') {
+      widget.numJoined = widget.numPlayers;
+      gameStarted = true;
+    } else {
+      lastActionTxt = "Waiting for ${widget.numPlayers - widget.numJoined} more players";
+      // Send a joined-game message as soon as the initial build finishes:
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        gameStarted = false;
+        debugPrint('in resetGame:  gameStarted to $gameStarted');
+        _sendJoinedGameMsgToComms(widget.numJoined);
+      });
+    }
 
     for (final line in lines) {
       line.drawer = Who.nobody;
@@ -143,6 +162,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     }
 
     currentPlayer = Who.p1;
+    playerId = Who.values[widget.playerIndex];
     winnerText = "";
 
     setState(() {});
@@ -152,97 +172,103 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   Widget build(BuildContext context) {
     ref.listen(commsToGuiProvider, onMsgFromComms);
 
+    // debugPrint('in build with currentPlayer=$currentPlayer and playerId = $playerId');
     return LayoutBuilder(builder: (context, constraints) {
       late final int quarterTurns;
       quarterTurns = constraints.maxWidth < constraints.maxHeight ? 3 : 0;
 
-      return Stack(children: [
-        const GameConnection(),
-        if (isConnected)
-          Column(children: [
-            Row(children: [
-              for (final player in players.entries.skip(1).take(numPlayers))
-                Container(
-                  width: (constraints.maxWidth - 50) / numPlayers,
-                  decoration: (currentPlayer == player.key
-                      ? const BoxDecoration(color: Colors.white10)
-                      : null),
-                  child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text("${player.value.name}: ",
-                        // style: Theme.of(context).bannerTheme.contentTextStyle),
-                        style: TextStyle(
-                            fontFamily: "RobotoMono",
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: player.value.color)),
-                    Text(('{:3d}'.format(player.value.score)),
-                        style: TextStyle(
-                            fontFamily: "RobotoMono",
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: player.value.color)),
-                    const SizedBox(width: 10),
-                  ]),
+      return Scaffold(
+        body: Stack(children: [
+          if (widget.gameId != 'Local') GameConnection(gameId: widget.gameId),
+          if (gameStarted)
+            Column(children: [
+              Row(children: [
+                for (final player in players.entries.skip(1).take(widget.numPlayers))
+                  Container(
+                    width: (constraints.maxWidth - 50) / widget.numPlayers,
+                    decoration: (currentPlayer == player.key
+                        ? const BoxDecoration(color: Colors.white10)
+                        : null),
+                    child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      Text("${player.value.name}: ",
+                          // style: Theme.of(context).bannerTheme.contentTextStyle),
+                          style: TextStyle(
+                              fontFamily: "RobotoMono",
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: player.value.color)),
+                      Text(('{:3d}'.format(player.value.score)),
+                          style: TextStyle(
+                              fontFamily: "RobotoMono",
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: player.value.color)),
+                      const SizedBox(width: 10),
+                    ]),
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.stop_circle_outlined, semanticLabel: 'Leave game'),
+                  tooltip: 'Leave game',
+                  onPressed: () {
+                    setState(() {
+                      showLeaveGameConfirmation = true;
+                    });
+                  },
                 ),
-              IconButton(
-                icon: const Icon(Icons.stop_circle_outlined, semanticLabel: 'Leave game'),
-                tooltip: 'Leave game',
-                onPressed: () {
-                  setState(() {
-                    showLeaveGameConfirmation = true;
-                  });
-                },
-              ),
+              ]),
+              Expanded(
+                  child: RotatedBox(
+                      quarterTurns: quarterTurns,
+                      child: Stack(children: [
+                        DrawBoxes(boxes),
+                        DrawDots(dots,
+                            isMyTurn: widget.gameId == 'Local' || currentPlayer == playerId,
+                            onLineRequested: onLineRequested),
+                      ]))),
             ]),
-            Expanded(
-                child: RotatedBox(
-                    quarterTurns: quarterTurns,
-                    child: Stack(children: [
-                      DrawBoxes(boxes),
-                      DrawDots(dots,
-                          isMyTurn: currentPlayer == playerId, onLineRequested: onLineRequested),
-                    ]))),
-          ]),
-        Align(alignment: Alignment.bottomLeft, child: Text(lastActionTxt)),
-        Align(alignment: Alignment.bottomCenter, child: Text('-- ${players[playerId]?.name} --')),
-        Align(alignment: Alignment.bottomRight, child: Text(gameId)),
-        if (winnerText.isNotEmpty)
-          AlertDialog(
-            title: const Text('Game Over'),
-            content: Text(winnerText),
-            actions: <Widget>[
-              TextButton(onPressed: () => resetGame(), child: const Text('OK')),
-            ],
-          ),
-        if (showLeaveGameConfirmation)
-          AlertDialog(
-            title: const Text('Confirm leave-game'),
-            content: const Text("Leave game now?"),
-            actions: <Widget>[
-              TextButton(
-                  onPressed: () {
-                    showLeaveGameConfirmation = false;
-                    leaveGame();
-                    setState(() {});
-                  },
-                  child: const Text('Yes, leave game')),
-              TextButton(
-                  onPressed: () {
-                    showLeaveGameConfirmation = false;
-                    setState(() {});
-                  },
-                  child: const Text('No, continue game')),
-            ],
-          ),
-      ]);
+          Align(alignment: Alignment.bottomLeft, child: Text(lastActionTxt)),
+          Align(alignment: Alignment.bottomCenter, child: Text('-- ${players[playerId]?.name} --')),
+          Align(alignment: Alignment.bottomRight, child: Text(widget.gameId)),
+          if (winnerText.isNotEmpty)
+            AlertDialog(
+              title: const Text('Game Over'),
+              content: Text(winnerText),
+              actions: <Widget>[
+                TextButton(onPressed: () => leaveGame(), child: const Text('OK')),
+              ],
+            ),
+          if (showLeaveGameConfirmation)
+            AlertDialog(
+              title: const Text('Confirm leave-game'),
+              content: const Text("Leave game now?"),
+              actions: <Widget>[
+                TextButton(
+                    onPressed: () {
+                      showLeaveGameConfirmation = false;
+                      leaveGame();
+                      setState(() {});
+                    },
+                    child: const Text('Yes, leave game')),
+                TextButton(
+                    onPressed: () {
+                      showLeaveGameConfirmation = false;
+                      setState(() {});
+                    },
+                    child: const Text('No, continue game')),
+              ],
+            ),
+        ]),
+      );
     });
   }
 
   onLineRequested(Dot src, Dot dest, [drawer = Who.nobody]) {
+    debugPrint('in onLineRequested(src:|$src|, dest:|$dest|, drawer:|$drawer|")');
     debugPrint('onLineRequested with $src, $dest, and playerId=$playerId');
     debugPrint(
         '...and gameStarted = $gameStarted, drawer = $drawer, and currentPlayer = $currentPlayer');
-    if (!gameStarted || drawer == Who.nobody && currentPlayer != playerId) {
+    if (!gameStarted ||
+        drawer == Who.nobody && currentPlayer != playerId && widget.gameId != 'Local') {
       return;
     }
 
@@ -292,7 +318,7 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   switchPlayer() {
     int nextPlayer = currentPlayer.index;
     do {
-      if (++nextPlayer > numPlayers) {
+      if (++nextPlayer > widget.numPlayers) {
         nextPlayer = 1;
       }
       currentPlayer = Who.values[nextPlayer];

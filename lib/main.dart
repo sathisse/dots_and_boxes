@@ -7,7 +7,7 @@ import 'package:uuid/uuid.dart';
 import 'dots_and_boxes_game.dart';
 
 // ignore: unused_import
-import 'game_info.dart';
+// import 'game_info.dart';
 
 // ignore: unused_import
 import 'lobby.dart';
@@ -43,9 +43,9 @@ class MyApp extends StatelessWidget {
         body: Center(
           child: Container(
               padding: const EdgeInsets.symmetric(horizontal: windowMargin, vertical: windowMargin),
-              child: DotsAndBoxesGame(
-                  game: GameInfo(gameId: 'Local', numDots: 6, numPlayers: 3))),
-              // child: const Lobby()),
+              // child: DotsAndBoxesGame(
+              //     game: GameInfo(gameId: 'Local', numDots: 6, numPlayers: 3))),
+              child: const Lobby()),
         ),
       ),
     );

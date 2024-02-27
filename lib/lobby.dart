@@ -6,6 +6,7 @@ import 'package:pubnub/pubnub.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
 import 'create_new_game_dialog.dart';
+import 'dots_and_boxes_game.dart';
 import 'game_info.dart';
 import 'lobby_manager.dart' show LobbyManagerMsgType;
 import 'main.dart' show uuid, pubnub;
@@ -184,8 +185,20 @@ class _Lobby extends State<Lobby> {
   }
 
   void createNewGame(String gameId, int numDots, int numPlayers) {
+    debugPrint('in createNewGame(gameId:|$gameId|, numDots:|$numDots|, numPlayers:|$numPlayers|")');
     if (gameId == 'Local') {
-      debugPrint('Starting local-only game');
+      // ignore: unused_local_variable
+      final localGame = GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers)
+        ..numJoined = numPlayers;
+      // debugPrint('Starting local-only game');
+      // Navigator.push(
+      //     savedContext,
+      //     MaterialPageRoute(
+      //         builder: (savedContext) =>
+      //             DotsAndBoxesGame(game: GameInfo(gameId: 'Local', numDots: 6, numPlayers: 3))));
+      // debugPrint('After Navigator push');
+      _sendCreateGameToMgr(
+          uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
     } else {
       _sendCreateGameToMgr(
           uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
@@ -244,31 +257,42 @@ class _Lobby extends State<Lobby> {
 
       case LobbyManagerMsgType.created:
         debugPrint(">>>>> Created message");
-        final requestingUserId = json.decode(message.payload['userId']);
-        if (requestingUserId == uuid) {
+        final creatingUserId = json.decode(message.payload['userId']);
+        if (creatingUserId == uuid) {
           final GameInfo newGame = GameInfo.fromJson(json.decode(message.payload['game']));
-          gameList.add(newGame);
-          gameList.sort();
-          scrollToItem(newGame.gameId);
 
-          _sendJoinGameMsgToMgr(uuid, newGame.gameId);
+          if (newGame.gameId == 'Local') {
+            Navigator.push(
+                context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: newGame)));
+          } else {
+            gameList.add(newGame);
+            gameList.sort();
+            scrollToItem(newGame.gameId);
+
+            _sendJoinGameMsgToMgr(uuid, newGame.gameId);
+          }
         }
         break;
 
       case LobbyManagerMsgType.joined:
         debugPrint(">>>>> Joined message");
         final userId = json.decode(message.payload['userId']);
-        final GameInfo game = GameInfo.fromJson(json.decode(message.payload['game']));
-        debugPrint('user $userId joined game ${game.gameId} as player ${game.numJoined}');
+        final joiningUserId = json.decode(message.payload['userId']);
+        if (joiningUserId == uuid) {
+          final GameInfo game = GameInfo.fromJson(json.decode(message.payload['game']));
+          debugPrint('user $userId joined game ${game.gameId} as player ${game.numJoined}');
 
-        setState(() {
-          // ToDo: Probably should validate that the game was in fact still in the list:
-          gameList[gameList.indexWhere((g) => g.gameId == game.gameId)] = game;
-          debugPrint('gameList is now $gameList');
-        });
-        gameList.sort();
-        scrollToItem(game.gameId);
-        // ToDo: Actually start the game GUI.
+          setState(() {
+            // ToDo: Probably should validate that the game was in fact still in the list:
+            gameList[gameList.indexWhere((g) => g.gameId == game.gameId)] = game;
+            debugPrint('gameList is now $gameList');
+          });
+          gameList.sort();
+          scrollToItem(game.gameId);
+
+          Navigator.push(
+              context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: game)));
+        }
         break;
 
       case LobbyManagerMsgType.rejected:

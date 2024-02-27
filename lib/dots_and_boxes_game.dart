@@ -146,7 +146,6 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       lastActionTxt = "Waiting for ${widget.numPlayers - widget.numJoined} more players";
       // Send a joined-game message as soon as the initial build finishes:
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        gameStarted = false;
         debugPrint('in resetGame:  gameStarted to $gameStarted');
         _sendJoinedGameMsgToComms(widget.numJoined);
       });

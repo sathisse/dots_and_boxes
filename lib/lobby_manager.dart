@@ -96,9 +96,9 @@ class _LobbyManager extends State<LobbyManager> {
     appendMessageToLog('Starting lobby manager');
 
     gameList = <GameInfo>[
-      GameInfo(gameId: '001', numDots: 12, numPlayers: 2)..numJoined = 1,
-      GameInfo(gameId: '002', numDots: 12, numPlayers: 3)..numJoined = 1,
-      GameInfo(gameId: '003', numDots: 20, numPlayers: 2),
+      GameInfo(gameId: '001', numDots: 12, numPlayers: 2),
+      GameInfo(gameId: '002', numDots: 12, numPlayers: 2),
+      GameInfo(gameId: '003', numDots: 20, numPlayers: 3),
       GameInfo(gameId: '004', numDots: 24, numPlayers: 5)..numJoined = 4,
       GameInfo(gameId: '005', numDots: 24, numPlayers: 4)..numJoined = 1,
       GameInfo(gameId: '006', numDots: 36, numPlayers: 2),
@@ -337,7 +337,7 @@ class _LobbyManager extends State<LobbyManager> {
     await channel.publish({
       "msgType": json.encode(LobbyManagerMsgType.joined.name),
       "userId": json.encode(userId),
-      "game": json.encode(game),
+      "game": json.encode(game)
     });
   }
 

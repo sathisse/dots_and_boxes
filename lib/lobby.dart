@@ -100,8 +100,8 @@ class _Lobby extends State<Lobby> {
                 icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Create local game'),
                 onPressed: () {
                   setState(() {
-                    Navigator.of(context).push(
-                        CreateNewGameDialog<void>(localGame: true, createNewGame: createNewGame));
+                    Navigator.push(context,
+                        CreateNewGameDialog(localGame: true, createNewGame: createNewGame));
                   });
                 },
               ),
@@ -111,8 +111,8 @@ class _Lobby extends State<Lobby> {
                 icon: const Icon(Icons.add_circle_outline, semanticLabel: 'Create network game'),
                 onPressed: () {
                   setState(() {
-                    Navigator.of(context).push(
-                        CreateNewGameDialog<void>(localGame: false, createNewGame: createNewGame));
+                    Navigator.of(context)
+                        .push(CreateNewGameDialog(localGame: false, createNewGame: createNewGame));
                   });
                 },
               ),

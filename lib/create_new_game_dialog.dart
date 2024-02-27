@@ -5,7 +5,7 @@ import 'game_size_slider.dart';
 
 const gameIdLength = 8;
 
-class CreateNewGameDialog<T> extends PopupRoute<T> {
+class CreateNewGameDialog extends PopupRoute {
   final bool localGame;
   final void Function(String, int, int) createNewGame;
   int numPlayers = 2;

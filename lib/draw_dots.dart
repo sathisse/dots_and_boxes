@@ -66,7 +66,7 @@ class DrawDots extends StatelessWidget {
                       if (isMyTurn) {
                         dotColor = Colors.grey;
                       }
-                      // debugPrint("in onWillAccept with dst $dot and src $data");
+                      // debugPrint("in onWillAccept with dst $dot and src $data and isMyTurn $isMyTurn");
                       return isMyTurn && dot.position != data?.position;
                     },
                     onAccept: (data) {

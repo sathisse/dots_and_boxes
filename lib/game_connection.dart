@@ -1,23 +1,16 @@
 import 'dart:convert';
-import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pubnub/pubnub.dart';
-import 'package:uuid/uuid.dart';
 
-import 'main.dart';
-import 'game_size_slider.dart';
+import 'main.dart' show uuid, pubnub;
 import 'line.dart';
 
 enum GameMsgType {
-  join,
-  added,
-  addedMe,
-  addedOther,
-  rejected,
-  line,
-  leave;
+  joinedGame,
+  leftGame,
+  addLine;
 }
 
 const gameIdLength = 3;
@@ -28,8 +21,11 @@ final commsToGuiProvider =
 final guiToCommsProvider =
     StateProvider<List<dynamic>>((ref) => <dynamic>[Line((-1, -1), (-1, -1))]);
 
+// ToDo: this no longer needs to be a widget; how-to/can convert to use widget-less providers?
 class GameConnection extends ConsumerStatefulWidget {
-  const GameConnection({super.key});
+  final String gameId;
+
+  const GameConnection({required this.gameId, super.key});
 
   @override
   ConsumerState<GameConnection> createState() => _GameConnection();
@@ -38,125 +34,29 @@ class GameConnection extends ConsumerStatefulWidget {
 class _GameConnection extends ConsumerState<GameConnection> {
   _GameConnection();
 
-  late bool createGame;
-  late String gameId;
-  late int playerIndex;
-  late int numberOfDots;
-  late int joinedPlayers;
-  late int numPlayers;
-
   late bool isConnected;
   late Subscription subscription;
   late Channel channel;
 
   @override
   void initState() {
-    createGame = false;
-    gameId = "";
-    playerIndex = 0;
-    numberOfDots = 12;
-    numPlayers = 2;
-    joinedPlayers = 1;
+    super.initState();
+
     isConnected = false;
 
-    super.initState();
+    subscribeToGameChannel();
   }
 
   @override
   Widget build(BuildContext context) {
     ref.listen(guiToCommsProvider, handleMessageFromGui);
 
-    return Scaffold(
-      body: Center(
-        child: Stack(children: [
-          if (!isConnected)
-            Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Row(mainAxisAlignment: MainAxisAlignment.center, children: <Widget>[
-                const Text('Create new game?'),
-                Checkbox(
-                    value: createGame,
-                    onChanged: (bool? value) {
-                      createGame = value ?? false;
-                      setState(() {
-                        if (createGame) {
-                          createGameId();
-                        } else {
-                          unsubscribeFromGameChannel();
-                          gameId = '';
-                        }
-                      });
-                      setState(() {});
-                    }),
-              ]),
-              SizedBox(
-                width: 120.0,
-                child: TextFormField(
-                  controller: TextEditingController()..text = gameId,
-                  decoration: const InputDecoration(
-                    border: OutlineInputBorder(),
-                    labelText: 'Game ID',
-                  ),
-                  enabled: !createGame,
-                  maxLength: gameIdLength,
-                  onChanged: (value) {
-                    if (value.length == gameIdLength) {
-                      gameId = value;
-                      subscribeToGameChannel();
-                      setState(() {});
-                    }
-                  },
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              const SizedBox(height: 25.0),
-              Column(
-                children: [
-                  DropdownMenu<int>(
-                    initialSelection: 2,
-                    requestFocusOnTap: false,
-                    enabled: createGame,
-                    label: const Text("Number of Players"),
-                    onSelected: (int? value) {
-                      setState(() {
-                        numPlayers = value!;
-                      });
-                    },
-                    dropdownMenuEntries: const [
-                      DropdownMenuEntry(value: 2, label: "2"),
-                      DropdownMenuEntry(value: 3, label: "3"),
-                      DropdownMenuEntry(value: 4, label: "4"),
-                      DropdownMenuEntry(value: 5, label: "5"),
-                    ],
-                  ),
-                  GameSizeSlider(setNumberOfDots: setNumberOfDots, isEnabled: createGame),
-                  ElevatedButton(
-                      onPressed: !createGame
-                          ? null
-                          : () {
-                              subscribeToGameChannel(creator: true);
-                            },
-                      child: const Text("Create Game"))
-                ],
-              )
-            ]),
-        ]),
-      ),
-    );
-  }
-
-  void setNumberOfDots(int numberOfDots) {
-    this.numberOfDots = numberOfDots;
+    return const Scaffold();
   }
 
   //
   // PubNub Methods
   //
-
-  void createGameId() async {
-    gameId = const Uuid().v4().substring(0, gameIdLength);
-    debugPrint('Game ID: $gameId');
-    joinedPlayers = 1;
-  }
 
   void unsubscribeFromGameChannel() async {
     try {
@@ -169,28 +69,19 @@ class _GameConnection extends ConsumerState<GameConnection> {
     isConnected = false;
   }
 
-  void subscribeToGameChannel({bool creator = false}) async {
+  void subscribeToGameChannel() async {
     debugPrint('Subscribing to channel');
     unsubscribeFromGameChannel();
 
     // ToDo: How to know if gameId is valid for non-creators?
-    var channelName = 'DotsAndBoxes.$gameId';
+    var channelName = 'DotsAndBoxes.${widget.gameId}';
     subscription = pubnub.subscribe(channels: {channelName});
     channel = pubnub.channel(channelName);
 
     // ToDo: if retrying gameId, we don't seem to be subscribing to the new channel:
     // Sets up a listener for new messages:
     subscription.messages.forEach((message) => handleMessageFromComms(message));
-
-    if (creator) {
-      playerIndex = 1;
-      isConnected = true;
-      _sendAddedMeMsgToGui(gameId, playerIndex, numberOfDots, numPlayers, joinedPlayers);
-    } else {
-      _sendJoinMsgToComms();
-    }
-
-    setState(() {});
+    isConnected = true;
   }
 
   //
@@ -206,66 +97,24 @@ class _GameConnection extends ConsumerState<GameConnection> {
 
     switch (
         GameMsgType.values.firstWhere((mt) => mt.name == json.decode(message.payload['msgType']))) {
-      case GameMsgType.join:
-        var userId = message.uuid.value;
-        debugPrint(">>>>> Join-request message from user $userId");
-
-        if (playerIndex == 1) {
-          if (joinedPlayers < numPlayers) {
-            _sendAddedMsgToComms(userId, ++joinedPlayers);
-          } else {
-            debugPrint('The game is full!');
-            _sendRejectedMsgToComms(userId);
-          }
-        } else if (userId == UserId(uuid).value) {
-          _sendMessageToGui(message.payload);
-        }
+      case GameMsgType.joinedGame:
+        _sendMessageToGui(message.payload);
         break;
 
-      case GameMsgType.added:
-        final String userId = json.decode(message.payload['userId']);
-        final int playerIndex = json.decode(message.payload['playerIndex']);
-        numPlayers = json.decode(message.payload['numPlayers']);
-        joinedPlayers = max(joinedPlayers, playerIndex);
-        numberOfDots = json.decode(message.payload['numberOfDots']);
-        debugPrint(">>>>> Player-added message with $userId, $playerIndex, $numberOfDots");
-
-        if (userId == UserId(uuid).value) {
-          debugPrint("That's me! Let's configure the game...");
-          this.playerIndex = playerIndex;
-          isConnected = true;
-          _sendAddedMeMsgToGui(gameId, playerIndex, numberOfDots, numPlayers, joinedPlayers);
-        } else {
-          debugPrint("Someone else was added; there's nothing to do.");
-          _sendAddedOtherMsgToGui(playerIndex);
-        }
-        break;
-
-      case GameMsgType.addedMe:
-      case GameMsgType.addedOther:
-        // Not used for CommsToComms messages.
-        break;
-
-      case GameMsgType.rejected:
-        String userId = json.decode(message.payload['userId']);
-        debugPrint(">>>>> Player-rejected message with $userId");
-
-        if (userId == UserId(uuid).value) {
-          debugPrint("That's me! Let's let the player know that that can't join the game...");
-          _sendMessageToGui(message.payload);
-        } else {
-          debugPrint("Someone else was rejected; there's nothing to do.");
-        }
-        break;
-
-      case GameMsgType.line:
+      case GameMsgType.addLine:
         debugPrint(">>>>> Line-requested message with ${json.decode(message.payload['line'])}");
         _sendMessageToGui(message.payload);
         break;
 
-      case GameMsgType.leave:
+      case GameMsgType.leftGame:
         debugPrint(">>>>> Leave-game message");
-        _sendMessageToGui(message.payload);
+        // final String userId = json.decode(message.payload['userId']);
+        // if (userId != UserId(uuid).value) {
+        //   debugPrint("That's me; nothing to do...");
+        // } else {
+          debugPrint("Someone left; let the GUI know.");
+          _sendMessageToGui(message.payload);
+        // }
         break;
     }
 
@@ -276,23 +125,20 @@ class _GameConnection extends ConsumerState<GameConnection> {
     await channel.publish(message);
   }
 
-  void _sendJoinMsgToComms() async {
-    await channel.publish({"msgType": json.encode(GameMsgType.join.name)});
-  }
-
-  void _sendAddedMsgToComms(String userId, int playerIndex) async {
-    await channel.publish({
-      "msgType": json.encode(GameMsgType.added.name),
-      "userId": json.encode(userId),
-      "numPlayers": json.encode(numPlayers),
-      "playerIndex": json.encode(playerIndex),
-      "numberOfDots": json.encode(numberOfDots)
-    });
-  }
-
-  void _sendRejectedMsgToComms(String userId) async {
+  void _sendJoinedGameMsgToComms(int numJoined) async {
+    debugPrint('in _sendJoinedGameMsgToComms(numJoined:|$numJoined|")');
     await channel.publish(
-        {"msgType": json.encode(GameMsgType.rejected.name), "userId": json.encode(userId)});
+        {"msgType": json.encode(GameMsgType.joinedGame.name),
+         "numJoined": json.encode(numJoined)});
+  }
+
+  void _sendLeftGameMsgToComms(int playerIndex) async {
+    debugPrint('in _sendLeftGameMsgToComms(playerIndex:|$playerIndex|")');
+    await channel.publish({
+      "msgType": json.encode(GameMsgType.leftGame.name),
+      // "userId": json.encode(UserId(uuid).value),
+      "playerIndex": json.encode(playerIndex)
+    });
   }
 
   //
@@ -306,21 +152,17 @@ class _GameConnection extends ConsumerState<GameConnection> {
     GameMsgType msgType =
         GameMsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']));
     switch (msgType) {
-      case GameMsgType.join:
-      case GameMsgType.added:
-      case GameMsgType.addedMe:
-      case GameMsgType.addedOther:
-      case GameMsgType.rejected:
-        // Not used for GuiToComms messages.
+      case GameMsgType.joinedGame:
+        int numJoined = json.decode(message['numJoined']);
+        _sendJoinedGameMsgToComms(numJoined);
         break;
 
-      case GameMsgType.line:
+      case GameMsgType.addLine:
         _sendMessageToComms(message);
         break;
 
-      case GameMsgType.leave:
-        _sendMessageToComms(message);
-        gameId = "";
+      case GameMsgType.leftGame:
+        _sendLeftGameMsgToComms(json.decode(message['playerIndex']));
         isConnected = false;
         unsubscribeFromGameChannel();
         setState(() {});
@@ -331,27 +173,5 @@ class _GameConnection extends ConsumerState<GameConnection> {
   void _sendMessageToGui(dynamic message) {
     ref.read(commsToGuiProvider.notifier).state =
         ref.read(commsToGuiProvider.notifier).state.toList()..add(message);
-  }
-
-  void _sendAddedMeMsgToGui(
-      String gameId, int playerIndex, int numberOfDots, int numPlayers, int joinedPlayers) {
-    dynamic message = {
-      "msgType": json.encode(GameMsgType.addedMe.name),
-      "gameId": json.encode(gameId),
-      "playerIndex": json.encode(playerIndex),
-      "numberOfDots": json.encode(numberOfDots),
-      "numPlayers": json.encode(numPlayers),
-      "joinedPlayers": json.encode(joinedPlayers)
-    };
-    _sendMessageToGui(message);
-  }
-
-  void _sendAddedOtherMsgToGui(int playerIndex) {
-    dynamic message = {
-      "msgType": json.encode(GameMsgType.addedOther.name),
-      "joinedPlayers": json.encode(joinedPlayers),
-      "playerIndex": json.encode(playerIndex)
-    };
-    _sendMessageToGui(message);
   }
 }

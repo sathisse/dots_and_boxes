@@ -1,5 +1,6 @@
 import 'dart:core';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:dots_and_boxes/game_connection.dart';
 import 'package:dots_and_boxes/game_info.dart';
@@ -282,9 +283,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         gameStarted = true;
         drawRequestedLine(line);
 
+        // The line's drawer is Who.nobody if it was done locally (as opposed by a remote player):
         if (drawer == Who.nobody) {
           dynamic message = {
-            "msgType": json.encode(GameMsgType.line.name),
+            "msgType": json.encode(GameMsgType.addLine.name),
             "line": json.encode(line)
           };
 
@@ -328,17 +330,10 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
   }
 
   void leaveGame() {
-    dynamic message = {
-      "msgType": json.encode(GameMsgType.leave.name),
-      "playerIndex": json.encode(playerIndex)
-    };
-
-    ref.read(guiToCommsProvider.notifier).state =
-        ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
-
-    // ToDo: Return to lobby (either here or in GameConnection).
+    _sendLeftGameMsgToComms();
     showLeaveGameConfirmation = false;
     isConnected = false;
+    Navigator.pop(context);
   }
 
   endGame() {
@@ -360,22 +355,26 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
       FlameAudio.play("aw.wav");
       winnerText = "The game ended in a tie.";
     } else {
-      if (players[playerId]?.score == hiScore) {
+      if (widget.gameId == 'Local') {
         FlameAudio.play("yay.mp3");
-        winnerText = "You win with $hiScore boxes closed!";
-      } else {
-        FlameAudio.play("no.wav");
         winnerText = "$winner wins with $hiScore boxes closed!";
+      } else {
+        if (players[playerId]?.score == hiScore) {
+          FlameAudio.play("yay.mp3");
+          winnerText = "You win with $hiScore boxes closed!";
+        } else {
+          FlameAudio.play("no.wav");
+          winnerText = "$winner wins with $hiScore boxes closed!";
+        }
       }
     }
 
     debugPrint(winnerText);
-
     setState(() {});
   }
 
   //
-  // To/from GUI Message Methods
+  // To/from Comms Message Methods
   //
 
   onMsgFromComms(List<dynamic>? previous, List<dynamic> next) {
@@ -383,48 +382,20 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     debugPrint('GUI: received a message from Comms: "$message"');
 
     switch (GameMsgType.values.firstWhere((mt) => mt.name == json.decode(message['msgType']))) {
-      case GameMsgType.join:
-        lastActionTxt = "<Requesting to join game>";
-        break;
-
-      case GameMsgType.added:
-        // Not used for CommsToGui messages.
-        break;
-
-      case GameMsgType.addedMe:
-        joinedPlayers = json.decode(message['joinedPlayers']);
-        gameId = json.decode(message['gameId']);
-        playerIndex = json.decode(message['playerIndex']);
-        playerId = Who.values[playerIndex];
-        numberOfDots = json.decode(message['numberOfDots']);
-        numPlayers = json.decode(message['numPlayers']);
-        joinedPlayers = json.decode(message['joinedPlayers']);
-        lastActionTxt = "Joined game as ${players[playerId]?.name}";
-        configureBoard(getDimensionChoices()
-            .entries
-            .where((dim) => dim.value.$1 * dim.value.$2 >= numberOfDots)
-            .first);
-        isConnected = true;
-        if (joinedPlayers == numPlayers) {
+      case GameMsgType.joinedGame:
+        numJoined = max(numJoined, json.decode(message['numJoined']));
+        lastActionTxt = 'Waiting for ${widget.numPlayers - numJoined} more players';
+        if (widget.numPlayers == numJoined) {
+          lastActionTxt='Game started';
           gameStarted = true;
+          debugPrint('in onMsgFromComms: gameStarted = $gameStarted');
+        } else {
+          debugPrint('Diff = ${widget.numPlayers - numJoined} with ${widget.numPlayers} and $numJoined');
         }
+
         break;
 
-      case GameMsgType.addedOther:
-        joinedPlayers = json.decode(message['joinedPlayers']);
-        lastActionTxt =
-            "${players[Who.values[json.decode(message['playerIndex'])]]?.name} has joined game";
-        debugPrint('joinedPlayers = $joinedPlayers and numPlayers = $numPlayers');
-        if (joinedPlayers == numPlayers) {
-          gameStarted = true;
-        }
-        break;
-
-      case GameMsgType.rejected:
-        lastActionTxt = "Sorry, the game is full.";
-        break;
-
-      case GameMsgType.line:
+      case GameMsgType.addLine:
         Line line = Line.fromJson(json.decode(message['line']));
         if (line.drawer != playerId) {
           debugPrint("Line = $line");
@@ -433,16 +404,16 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         }
         break;
 
-      case GameMsgType.leave:
+      case GameMsgType.leftGame:
         final leavingPlayerIndex = json.decode(message['playerIndex']);
         debugPrint('');
-        if (leavingPlayerIndex == playerIndex) {
+        if (leavingPlayerIndex == widget.playerIndex) {
           lastActionTxt = "You have left the game.";
         } else {
           final Player leavingPlayer = players[Who.values[leavingPlayerIndex]]!;
           leavingPlayer.isGone = true;
           lastActionTxt = "${leavingPlayer.name} has left the game.";
-          if (players.entries.where((p) => p.value.isGone).length == numPlayers - 1) {
+          if (players.entries.where((p) => p.value.isGone).length == widget.numPlayers - 1) {
             endGame();
           }
         }
@@ -450,5 +421,25 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     }
 
     setState(() {});
+  }
+
+  _sendJoinedGameMsgToComms(int numJoined) {
+    dynamic message = {
+      "msgType": json.encode(GameMsgType.joinedGame.name),
+      "numJoined": json.encode(numJoined)
+    };
+
+    ref.read(guiToCommsProvider.notifier).state =
+        ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
+  }
+
+  _sendLeftGameMsgToComms() {
+    dynamic message = {
+      "msgType": json.encode(GameMsgType.leftGame.name),
+      "playerIndex": json.encode(widget.playerIndex)
+    };
+
+    ref.read(guiToCommsProvider.notifier).state =
+        ref.read(guiToCommsProvider.notifier).state.toList()..add(message);
   }
 }

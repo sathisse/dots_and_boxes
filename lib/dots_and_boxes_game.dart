@@ -39,8 +39,8 @@ class DotsAndBoxesGame extends ConsumerStatefulWidget {
   late final String gameId;
   late final int numberOfDots;
   late final int numPlayers;
-  late final int numJoined;
   late final int playerIndex;
+  late int numJoined;
 
   DotsAndBoxesGame({required GameInfo game, super.key}) {
     debugPrint('in DotsAndBoxesGame(game:|$game|")');

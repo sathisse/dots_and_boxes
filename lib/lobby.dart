@@ -190,12 +190,15 @@ class _Lobby extends State<Lobby> {
       // ignore: unused_local_variable
       final localGame = GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers)
         ..numJoined = numPlayers;
-      // debugPrint('Starting local-only game');
+      debugPrint('Starting local-only game');
+      // ToDo: Why doesn't it work to navigate here, but does in the message handler?
       // Navigator.push(
       //     savedContext,
       //     MaterialPageRoute(
       //         builder: (savedContext) =>
       //             DotsAndBoxesGame(game: GameInfo(gameId: 'Local', numDots: 6, numPlayers: 3))));
+      // Navigator.push(
+      //     context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: localGame)));
       // debugPrint('After Navigator push');
       _sendCreateGameToMgr(
           uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
@@ -262,6 +265,7 @@ class _Lobby extends State<Lobby> {
           final GameInfo newGame = GameInfo.fromJson(json.decode(message.payload['game']));
 
           if (newGame.gameId == 'Local') {
+            // ToDo: Why does navigation work here, but not in the createNewGame callback?
             Navigator.push(
                 context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: newGame)));
           } else {

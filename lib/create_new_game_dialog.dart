@@ -75,7 +75,8 @@ class CreateNewGameDialog extends PopupRoute {
                           final gameId = const Uuid().v4().substring(0, gameIdLength);
                           debugPrint('localGame is $localGame');
                           createNewGame(localGame ? 'Local' : gameId, numDots, numPlayers);
-                          Navigator.pop(context);
+                          // Don't pop here; the context gets altered or otherwise unusable:
+                          // Navigator.pop(context);
                         },
                         child: const Text("Create")),
                     const Spacer(),

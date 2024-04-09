@@ -197,11 +197,11 @@ class _Lobby extends State<Lobby> {
       //     MaterialPageRoute(
       //         builder: (savedContext) =>
       //             DotsAndBoxesGame(game: GameInfo(gameId: 'Local', numDots: 6, numPlayers: 3))));
-      // Navigator.push(
-      //     context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: localGame)));
+      Navigator.push(
+          context, MaterialPageRoute(builder: (context) => DotsAndBoxesGame(game: localGame)));
       // debugPrint('After Navigator push');
-      _sendCreateGameToMgr(
-          uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
+      // _sendCreateGameToMgr(
+      //     uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));
     } else {
       _sendCreateGameToMgr(
           uuid, GameInfo(gameId: gameId, numDots: numDots, numPlayers: numPlayers));

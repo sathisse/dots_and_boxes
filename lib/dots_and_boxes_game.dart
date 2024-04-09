@@ -40,7 +40,7 @@ class DotsAndBoxesGame extends ConsumerStatefulWidget {
   late final int numberOfDots;
   late final int numPlayers;
   late final int playerIndex;
-  late int numJoined;
+  late final int numJoined;
 
   DotsAndBoxesGame({required GameInfo game, super.key}) {
     debugPrint('in DotsAndBoxesGame(game:|$game|")');
@@ -140,13 +140,14 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     showLeaveGameConfirmation = false;
 
     if (widget.gameId == 'Local') {
-      widget.numJoined = widget.numPlayers;
+      numJoined = widget.numPlayers;
       gameStarted = true;
     } else {
-      lastActionTxt = "Waiting for ${widget.numPlayers - widget.numJoined} more players";
+      lastActionTxt = "Waiting for ${widget.numPlayers - numJoined} more players";
       // Send a joined-game message as soon as the initial build finishes:
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        debugPrint('in resetGame:  gameStarted to $gameStarted');
+        debugPrint(
+            'in resetGame:  gameStarted to $gameStarted with ${widget.numPlayers} and $numJoined');
         _sendJoinedGameMsgToComms(widget.numJoined);
       });
     }
@@ -332,7 +333,8 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
     _sendLeftGameMsgToComms();
     showLeaveGameConfirmation = false;
     isConnected = false;
-    Navigator.pop(context);
+    // Use popUntil since our previous route might be create-game instead of the lobby:
+    Navigator.popUntil(context, (route) => route.isFirst);
   }
 
   endGame() {
@@ -385,11 +387,12 @@ class _DotsAndBoxesGame extends ConsumerState<DotsAndBoxesGame> {
         numJoined = max(numJoined, json.decode(message['numJoined']));
         lastActionTxt = 'Waiting for ${widget.numPlayers - numJoined} more players';
         if (widget.numPlayers == numJoined) {
-          lastActionTxt='Game started';
+          lastActionTxt = 'Game started';
           gameStarted = true;
           debugPrint('in onMsgFromComms: gameStarted = $gameStarted');
         } else {
-          debugPrint('Diff = ${widget.numPlayers - numJoined} with ${widget.numPlayers} and $numJoined');
+          debugPrint(
+              'Diff = ${widget.numPlayers - numJoined} with ${widget.numPlayers} and $numJoined');
         }
 
         break;

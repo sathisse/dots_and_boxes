@@ -1,3 +1,7 @@
+# Runtime files specific to Dots And Boxes
+console_lobby_manager.exe
+gamelist.json
+
 # Miscellaneous
 *.class
 *.log
